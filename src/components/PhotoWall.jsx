@@ -1,10 +1,32 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
+import useBodyScrollLock from '../hooks/useBodyScrollLock'
 import PhotoLightbox, { PhotoWallUploadCtaSlide } from './PhotoWallExtras'
 import PhotoWatermark from './PhotoWatermark'
 import TablePhotoGallery from './TablePhotoGallery'
 
 const FADE_MS = 1000
 const CTA_SLIDE_ID = '__upload-cta__'
+
+function getFullscreenElement() {
+  return document.fullscreenElement ?? document.webkitFullscreenElement ?? null
+}
+
+async function requestNodeFullscreen(node) {
+  const request =
+    node.requestFullscreen?.bind(node) ?? node.webkitRequestFullscreen?.bind(node)
+  if (!request) return false
+  await request()
+  return getFullscreenElement() === node
+}
+
+async function exitNodeFullscreen() {
+  if (!getFullscreenElement()) return
+  const exit =
+    document.exitFullscreen?.bind(document) ??
+    document.webkitExitFullscreen?.bind(document)
+  if (exit) await exit()
+}
 
 function buildSlides(photos) {
   const ordered = [...photos].sort(
@@ -20,7 +42,11 @@ export default function PhotoWallCarousel({
 }) {
   const containerRef = useRef(null)
   const [index, setIndex] = useState(0)
-  const [isFullscreen, setIsFullscreen] = useState(false)
+  const [isNativeFullscreen, setIsNativeFullscreen] = useState(false)
+  const [isExpanded, setIsExpanded] = useState(false)
+  const isFullscreen = isNativeFullscreen || isExpanded
+
+  useBodyScrollLock(isExpanded)
 
   const slides = useMemo(() => buildSlides(photos), [photos])
   const intervalMs = Math.max(5, Math.min(10, intervalSeconds)) * 1000
@@ -41,12 +67,27 @@ export default function PhotoWallCarousel({
 
   useEffect(() => {
     function onFullscreenChange() {
-      setIsFullscreen(document.fullscreenElement === containerRef.current)
+      setIsNativeFullscreen(getFullscreenElement() === containerRef.current)
     }
 
     document.addEventListener('fullscreenchange', onFullscreenChange)
-    return () => document.removeEventListener('fullscreenchange', onFullscreenChange)
+    document.addEventListener('webkitfullscreenchange', onFullscreenChange)
+    return () => {
+      document.removeEventListener('fullscreenchange', onFullscreenChange)
+      document.removeEventListener('webkitfullscreenchange', onFullscreenChange)
+    }
   }, [])
+
+  useEffect(() => {
+    if (!isExpanded) return undefined
+
+    function onKeyDown(event) {
+      if (event.key === 'Escape') setIsExpanded(false)
+    }
+
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [isExpanded])
 
   const goPrev = useCallback(() => {
     setIndex((value) => (value - 1 + slides.length) % slides.length)
@@ -60,18 +101,29 @@ export default function PhotoWallCarousel({
     const node = containerRef.current
     if (!node) return
 
-    try {
-      if (document.fullscreenElement === node) {
-        await document.exitFullscreen()
-      } else {
-        await node.requestFullscreen()
-      }
-    } catch {
-      // Fullscreen may be blocked by the browser.
-    }
-  }, [])
+    const active = isExpanded || getFullscreenElement() === node
 
-  return (
+    if (active) {
+      setIsExpanded(false)
+      try {
+        await exitNodeFullscreen()
+      } catch {
+        // Ignore exit errors.
+      }
+      return
+    }
+
+    try {
+      const entered = await requestNodeFullscreen(node)
+      if (entered) return
+    } catch {
+      // Fall through to CSS fullscreen (mobile Safari, etc.).
+    }
+
+    setIsExpanded(true)
+  }, [isExpanded])
+
+  const carousel = (
     <div
       ref={containerRef}
       className={`photo-wall-carousel${isFullscreen ? ' photo-wall-carousel-fullscreen' : ''}`}
@@ -137,6 +189,12 @@ export default function PhotoWallCarousel({
       </div>
     </div>
   )
+
+  if (isExpanded) {
+    return createPortal(carousel, document.body)
+  }
+
+  return carousel
 }
 
 export function PhotoWallGallery({ photos }) {

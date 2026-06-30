@@ -38,6 +38,10 @@ body {
     z-index: 2;
 }
 
+.container:has(.floating-poll-nav) {
+    padding-bottom: calc(112px + env(safe-area-inset-bottom));
+}
+
 .art-deco-border {
     border: 3px solid #d4af37;
     padding: 60px 40px;
