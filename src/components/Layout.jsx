@@ -32,21 +32,12 @@ export default function Layout() {
           <div className="site-nav-links">
             <PollsNavLink />
             <NavLink
-              to="/photos"
-              end
-              className={({ isActive }) =>
-                `site-nav-link${isActive ? ' site-nav-link-active' : ''}`
-              }
-            >
-              Photos
-            </NavLink>
-            <NavLink
               to="/photos/wall"
               className={({ isActive }) =>
                 `site-nav-link${isActive ? ' site-nav-link-active' : ''}`
               }
             >
-              Feed
+              Photos
             </NavLink>
             <Link to="/admin" className="site-nav-link site-nav-link-muted">
               Admin

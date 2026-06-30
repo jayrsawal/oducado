@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useId, useMemo, useState } from 'react'
 import { getDeviceId } from '../lib/deviceId'
 import {
   addPhotoComment,
@@ -9,6 +9,7 @@ import {
 import { supabase } from '../lib/supabase'
 
 export function useAlbumPhotoSocial(albumId, photos) {
+  const channelInstanceId = useId().replace(/:/g, '')
   const deviceId = getDeviceId()
   const photoIds = useMemo(() => photos.map((photo) => photo.id), [photos])
   const photoIdsKey = photoIds.join(',')
@@ -44,7 +45,7 @@ export function useAlbumPhotoSocial(albumId, photos) {
     if (!albumId) return undefined
 
     const channel = supabase
-      .channel(`album-photo-social-${albumId}`)
+      .channel(`album-photo-social-${albumId}-${channelInstanceId}`)
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'album_photo_likes' },
@@ -64,7 +65,7 @@ export function useAlbumPhotoSocial(albumId, photos) {
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [albumId, load])
+  }, [albumId, channelInstanceId, load])
 
   const toggleLike = useCallback(
     async (photoId) => {

@@ -1,9 +1,11 @@
 import { supabase } from './supabase'
 
 const BUCKET = 'poll-guest-photos'
-export const MAX_GUEST_PHOTOS = 10
-export const MAX_OPEN_PHOTOS = 10
-export const OPEN_UPLOAD_DISPLAY_NAME = 'Shared moment'
+export const MAX_DEVICE_PHOTOS = 10
+/** @deprecated Use MAX_DEVICE_PHOTOS */
+export const MAX_GUEST_PHOTOS = MAX_DEVICE_PHOTOS
+/** @deprecated Use MAX_DEVICE_PHOTOS */
+export const MAX_OPEN_PHOTOS = MAX_DEVICE_PHOTOS
 
 export async function uploadGuestPhoto({
   albumId,
@@ -56,7 +58,7 @@ export async function uploadGuestPhoto({
   }
 }
 
-export async function uploadOpenPhoto({ albumId, deviceId, blob }) {
+export async function uploadOpenPhoto({ albumId, deviceId, displayName, blob, tableId = null }) {
   const photoId = crypto.randomUUID()
   const path = `${albumId}/${photoId}.jpg`
 
@@ -74,8 +76,10 @@ export async function uploadOpenPhoto({ albumId, deviceId, blob }) {
   const { data: photoIdRow, error: submitError } = await supabase.rpc('submit_album_open_photo', {
     p_album_id: albumId,
     p_device_id: deviceId,
+    p_display_name: displayName,
     p_storage_path: path,
     p_public_url: publicUrl,
+    p_table_id: tableId,
   })
 
   if (submitError) {
@@ -86,8 +90,8 @@ export async function uploadOpenPhoto({ albumId, deviceId, blob }) {
   return {
     id: photoIdRow,
     album_id: albumId,
-    table_id: null,
-    display_name: OPEN_UPLOAD_DISPLAY_NAME,
+    table_id: tableId,
+    display_name: displayName.trim(),
     device_id: deviceId,
     storage_path: path,
     public_url: publicUrl,

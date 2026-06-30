@@ -24,8 +24,10 @@ export default function GuestPhotoCamera({
   open,
   onClose,
   onCapture,
+  onOpenGallery,
   onOpenDeviceCamera,
   uploading = false,
+  galleryPreviewUrl = null,
 }) {
   const videoRef = useRef(null)
   const viewportRef = useRef(null)
@@ -315,18 +317,22 @@ export default function GuestPhotoCamera({
       <div className="guest-camera-bottom-bar">
         <button
           type="button"
-          className="guest-camera-icon-btn guest-camera-side-btn"
-          onClick={onOpenDeviceCamera}
-          disabled={busy}
-          aria-label="Open device camera"
-          title="Device camera"
+          className="guest-camera-gallery-btn"
+          onClick={onOpenGallery}
+          disabled={busy || !onOpenGallery}
+          aria-label="Choose from gallery"
+          title="Gallery"
         >
-          <svg viewBox="0 0 24 24" aria-hidden="true" className="guest-camera-svg-icon">
-            <path
-              fill="currentColor"
-              d="M4 7h3l1.5-2h7L17 7h3a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2zm8 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z"
-            />
-          </svg>
+          {galleryPreviewUrl ? (
+            <img src={galleryPreviewUrl} alt="" className="guest-camera-gallery-thumb" />
+          ) : (
+            <svg viewBox="0 0 24 24" aria-hidden="true" className="guest-camera-gallery-icon">
+              <path
+                fill="currentColor"
+                d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"
+              />
+            </svg>
+          )}
         </button>
 
         <button

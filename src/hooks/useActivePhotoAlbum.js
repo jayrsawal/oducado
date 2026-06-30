@@ -12,7 +12,7 @@ export function useActivePhotoAlbum({ includeClosed = true } = {}) {
 
       const { data: openAlbum, error: openError } = await supabase
         .from('photo_albums')
-        .select('id, title, status, created_at')
+        .select('id, title, status, created_at, guest_upload_limit, open_upload_limit')
         .eq('status', 'open')
         .order('created_at', { ascending: false })
         .limit(1)
@@ -38,7 +38,7 @@ export function useActivePhotoAlbum({ includeClosed = true } = {}) {
 
       const { data: closedAlbum, error: closedError } = await supabase
         .from('photo_albums')
-        .select('id, title, status, created_at')
+        .select('id, title, status, created_at, guest_upload_limit, open_upload_limit')
         .eq('status', 'closed')
         .order('created_at', { ascending: false })
         .limit(1)

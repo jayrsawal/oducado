@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import useBodyScrollLock from '../hooks/useBodyScrollLock'
+import { isMyPhoto } from '../lib/photoOwnership'
 import PhotoLightbox, { PhotoWallUploadCtaSlide } from './PhotoWallExtras'
 import PhotoWatermark from './PhotoWatermark'
 
@@ -197,13 +198,29 @@ export default function PhotoWallCarousel({
   return carousel
 }
 
-export function PhotoWallGallery({ photos }) {
+export function PhotoWallGallery({ photos, deviceId, onDeletePhoto, deleting = false }) {
   const [lightboxPhoto, setLightboxPhoto] = useState(null)
+  const [filter, setFilter] = useState('all')
 
   const ordered = useMemo(
     () => [...photos].sort((a, b) => new Date(b.created_at) - new Date(a.created_at)),
     [photos]
   )
+
+  const visible = useMemo(() => {
+    if (filter !== 'mine') return ordered
+    return ordered.filter((photo) => isMyPhoto(photo, deviceId))
+  }, [deviceId, filter, ordered])
+
+  const myPhotoCount = useMemo(
+    () => ordered.filter((photo) => isMyPhoto(photo, deviceId)).length,
+    [deviceId, ordered]
+  )
+
+  async function handleDeletePhoto(photo) {
+    await onDeletePhoto?.(photo)
+    setLightboxPhoto((current) => (current?.id === photo.id ? null : current))
+  }
 
   if (ordered.length === 0) {
     return <p className="poll-hint">No photos yet. Be the first to share a favorite moment!</p>
@@ -211,24 +228,57 @@ export function PhotoWallGallery({ photos }) {
 
   return (
     <>
-      <div className="photo-event-grid">
-        {ordered.map((photo) => (
-          <button
-            key={photo.id}
-            type="button"
-            className="photo-event-grid-item"
-            onClick={() => setLightboxPhoto(photo)}
-            aria-label={`View photo${photo.display_name ? ` from ${photo.display_name}` : ''}`}
-          >
-            <img src={photo.public_url} alt="" className="photo-event-grid-image" />
-          </button>
-        ))}
+      <div className="photo-gallery-filter" role="tablist" aria-label="Gallery filter">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={filter === 'all'}
+          className={`photo-gallery-filter-btn${filter === 'all' ? ' photo-gallery-filter-btn-active' : ''}`}
+          onClick={() => setFilter('all')}
+        >
+          All photos
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={filter === 'mine'}
+          className={`photo-gallery-filter-btn${filter === 'mine' ? ' photo-gallery-filter-btn-active' : ''}`}
+          onClick={() => setFilter('mine')}
+        >
+          My photos{myPhotoCount > 0 ? ` (${myPhotoCount})` : ''}
+        </button>
       </div>
+
+      {visible.length === 0 ? (
+        <p className="poll-hint">
+          {filter === 'mine'
+            ? "You haven't shared any photos yet. Use Camera or Upload many to get started."
+            : 'No photos yet. Be the first to share a favorite moment!'}
+        </p>
+      ) : (
+        <div className="photo-event-grid">
+          {visible.map((photo) => (
+            <div key={photo.id} className="photo-event-grid-item">
+              <button
+                type="button"
+                className="photo-event-grid-hit"
+                onClick={() => setLightboxPhoto(photo)}
+                aria-label={`View photo${photo.display_name ? ` from ${photo.display_name}` : ''}`}
+              >
+                <img src={photo.public_url} alt="" className="photo-event-grid-image" />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
       <PhotoLightbox
         photo={lightboxPhoto}
-        photos={ordered}
+        photos={visible}
         onPhotoChange={setLightboxPhoto}
         onClose={() => setLightboxPhoto(null)}
+        onDelete={handleDeletePhoto}
+        canDelete={lightboxPhoto ? isMyPhoto(lightboxPhoto, deviceId) : false}
+        deleting={deleting}
       />
     </>
   )

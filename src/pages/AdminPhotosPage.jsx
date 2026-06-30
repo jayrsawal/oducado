@@ -18,14 +18,14 @@ export default function AdminPhotosPage() {
   const [polls, setPolls] = useState([])
   const [importPollId, setImportPollId] = useState('')
 
-  const { tables, reload: reloadRoster } = useAlbumRoster(album?.id)
+  const { reload: reloadRoster } = useAlbumRoster(album?.id)
 
   const loadAlbum = useCallback(async () => {
     setError(null)
 
     const { data: existing, error: fetchError } = await supabase
       .from('photo_albums')
-      .select('id, title, status, created_at')
+      .select('id, title, status, created_at, guest_upload_limit, open_upload_limit')
       .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle()
@@ -45,7 +45,7 @@ export default function AdminPhotosPage() {
     const { data: created, error: createError } = await supabase
       .from('photo_albums')
       .insert({ title: 'Family photo album', status: 'draft' })
-      .select('id, title, status, created_at')
+      .select('id, title, status, created_at, guest_upload_limit, open_upload_limit')
       .single()
 
     if (createError) {
@@ -196,6 +196,36 @@ export default function AdminPhotosPage() {
             </label>
           </form>
 
+          <form
+            className="poll-form admin-photo-limits-form"
+            onSubmit={(e) => {
+              e.preventDefault()
+              saveAlbum({ open_upload_limit: album.open_upload_limit })
+            }}
+          >
+            <label className="poll-field">
+              <span>Photos per device</span>
+              <input
+                type="number"
+                className="poll-input"
+                min={1}
+                max={999}
+                value={album.open_upload_limit ?? 10}
+                onChange={(e) =>
+                  setAlbum((prev) => ({
+                    ...prev,
+                    open_upload_limit: Number(e.target.value),
+                  }))
+                }
+                onBlur={() => saveAlbum({ open_upload_limit: album.open_upload_limit })}
+              />
+            </label>
+            <p className="poll-hint">
+              Each phone or browser can share up to this many photos total — quick shares and any
+              older table uploads count toward the same limit.
+            </p>
+          </form>
+
           <div className="admin-status-actions">
             {album.status === 'draft' && (
               <button
@@ -234,16 +264,8 @@ export default function AdminPhotosPage() {
           </p>
 
           <p className="poll-page-footer-link">
-            <a href="/photos/upload" target="_blank" rel="noreferrer">
-              Open quick share upload →
-            </a>
-            {' · '}
-            <a href="/photos" target="_blank" rel="noreferrer">
-              Open photo drop box →
-            </a>
-            {' · '}
             <a href="/photos/wall" target="_blank" rel="noreferrer">
-              Open photo wall →
+              Open photo feed →
             </a>
           </p>
         </section>
@@ -289,9 +311,10 @@ export default function AdminPhotosPage() {
       {tab === 'qrcodes' && (
         <section className="poll-section">
           <p className="poll-hint">
-            Print or display a QR code at each table. Guests scan it to upload up to 10 photos.
+            Print or display this QR code at the reunion. Guests scan it to open the photo feed,
+            share photos, and optionally tag a table for story rings.
           </p>
-          <AdminPhotoQRCodes tables={tables} />
+          <AdminPhotoQRCodes albumTitle={album.title} />
         </section>
       )}
     </div>

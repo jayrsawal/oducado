@@ -42,6 +42,9 @@ Migrations live in `supabase/migrations/` and must be run in order:
 | `013_update_album_guest_photo.sql` | Re-orient guest photos after upload |
 | `014_fix_photo_storage_upload_policy.sql` | Fix storage upload RLS for album photos |
 | `015_album_photo_social.sql` | Likes and comments on photo wall feed |
+| `016_album_upload_limits_and_open_names.sql` | Admin upload limits and named quick shares |
+| `017_open_photo_table_tag.sql` | Optional table tag on quick shares for story rings |
+| `018_combined_device_upload_limit.sql` | Single per-device upload limit for all photo types |
 
 **Option A — Supabase CLI (recommended)**
 
@@ -214,11 +217,10 @@ The Vite + React app connects to Supabase for polls and admin management.
 | `/polls` | Everyone | Guest list — pick your name to vote |
 | `/vote?name=…` | Everyone | Ballot for the selected guest |
 | `/results` | Everyone | Live results for the active (or most recent) poll |
-| `/photos` | Everyone | Photo drop box home — table QR codes and link to the wall |
-| `/photos/upload` | Everyone | Open photo upload — no table or name required |
-| `/photos/table/:tableId` | Everyone | Table photo drop box — pick your name |
-| `/photos/table/:tableId/upload?name=…` | Everyone | Upload up to 10 favorite photos |
-| `/photos/wall` | Everyone | Live photo wall (carousel or gallery) |
+| `/photos` | Everyone | Redirects to `/photos/wall` (legacy links and old QR codes) |
+| `/photos/upload` | Everyone | Redirects to `/photos/wall` (legacy quick-share QR codes) |
+| `/photos/table/:tableId` | Everyone | Redirects to `/photos/wall` (legacy table QR codes) |
+| `/photos/wall` | Everyone | Photo feed — share, browse, gallery, carousel, and table stories |
 | `/admin/login` | Organizers | Sign in |
 | `/admin` | Admins | Poll dashboard |
 | `/admin/photos` | Admins | Photo album — roster, QR codes, upload status |
@@ -226,17 +228,17 @@ The Vite + React app connects to Supabase for polls and admin management.
 
 The landing page (`/`) shows a QR code for **`/polls`** so guests can scan straight to the voting guest list.
 
-### Photo drop box (separate from polls)
+### Photo feed (separate from polls)
 
 The **photo album** is its own feature at **`/admin/photos`** — not tied to a poll. Polls keep their own roster for voting.
 
-1. **Admin → Photo album** — set up tables and guests (or **Import from poll** to copy a poll roster)
+1. **Admin → Photo album** — set up tables and guests on the roster (used for table story rings and optional tagging when guests share photos)
 2. **Open photo uploads** on the Details tab when you are ready
-3. **QR codes** tab — print one code per table (guests can also browse **`/photos`** for the same codes on their phone)
-4. Guests scan → pick their name → upload up to **10 photos**, or use **`/photos/upload`** for open sharing (no roster)
-5. Everyone browses **`/photos/wall`** (feed, gallery, or carousel) from **`/photos`**, the landing page, or the guest list
+3. **QR codes** tab — print one code for the reunion (points to **`/photos/wall`**)
+4. Guests scan → open the feed → enter their name → share photos and optionally tag a table
+5. Everyone browses **`/photos/wall`** (feed, gallery, or carousel) from the landing page, guest list, or QR code
 
-Run migrations **`011`** through **`015`** (see [Database setup](#database-setup)). If you already ran `010`, `011` replaces the poll-tied tables.
+Run migrations **`011`** through **`018`** (see [Database setup](#database-setup)). If you already ran `010`, `011` replaces the poll-tied tables.
 
 ### Install and run
 

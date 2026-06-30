@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useId, useState } from 'react'
 import { supabase } from '../lib/supabase'
 
 export function useAlbumPhotos(albumId) {
+  const channelInstanceId = useId().replace(/:/g, '')
   const [photos, setPhotos] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -42,7 +43,7 @@ export function useAlbumPhotos(albumId) {
     if (!albumId) return undefined
 
     const channel = supabase
-      .channel(`album-guest-photos-${albumId}`)
+      .channel(`album-guest-photos-${albumId}-${channelInstanceId}`)
       .on(
         'postgres_changes',
         {
@@ -60,7 +61,7 @@ export function useAlbumPhotos(albumId) {
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [albumId, load])
+  }, [albumId, channelInstanceId, load])
 
   return { photos, loading, error, reload: load }
 }

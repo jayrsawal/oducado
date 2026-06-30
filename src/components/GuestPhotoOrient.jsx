@@ -55,7 +55,7 @@ export default function GuestPhotoOrient({
         </button>
       </div>
 
-      <div className="guest-camera-bottom-bar">
+      <div className="guest-camera-bottom-bar guest-photo-orient-bottom-bar">
         <button
           type="button"
           className="guest-camera-icon-btn guest-camera-side-btn"

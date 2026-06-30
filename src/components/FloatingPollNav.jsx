@@ -3,17 +3,10 @@ import { useResultsNav } from '../contexts/ResultsNavContext'
 import { useFeedNav } from '../contexts/FeedNavContext'
 import { useVoteNav } from '../contexts/VoteNavContext'
 
-const GUEST_PATHS = new Set(['/polls', '/vote', '/results', '/photos', '/photos/wall'])
-
-function isPhotoGuestPath(pathname) {
-  return pathname.startsWith('/photos/table/') || pathname === '/photos/upload'
-}
+const GUEST_PATHS = new Set(['/polls', '/vote', '/results', '/photos/wall'])
 
 function guestNav(location, voteNav, resultsNav, feedNav) {
-  if (
-    !GUEST_PATHS.has(location.pathname) &&
-    !isPhotoGuestPath(location.pathname)
-  ) {
+  if (!GUEST_PATHS.has(location.pathname)) {
     return null
   }
 
@@ -59,23 +52,18 @@ function guestNav(location, voteNav, resultsNav, feedNav) {
     }
   }
 
-  if (location.pathname === '/photos') {
-    return {
-      back: { type: 'link', to: '/', label: 'Home' },
-      forward: { type: 'link', to: '/photos/wall', label: 'Photo wall' },
-    }
-  }
-
-  if (location.pathname === '/photos/upload') {
-    return {
-      back: { type: 'link', to: '/', label: 'Home' },
-      forward: { type: 'link', to: '/photos/wall', label: 'Photo wall' },
-    }
-  }
-
   if (location.pathname === '/photos/wall') {
     return {
-      back: { type: 'link', to: '/photos', label: 'Photos' },
+      back: feedNav?.onOpenCamera
+        ? {
+            type: 'action',
+            label: 'Camera',
+            icon: '📷',
+            onClick: feedNav.onOpenCamera,
+            disabled: feedNav.cameraDisabled,
+            ariaLabel: 'Share a photo',
+          }
+        : null,
       forward: feedNav
         ? {
             type: 'refresh',
@@ -88,26 +76,28 @@ function guestNav(location, voteNav, resultsNav, feedNav) {
     }
   }
 
-  if (location.pathname.match(/^\/photos\/table\/[^/]+\/upload$/)) {
-    const tableId = location.pathname.split('/')[3]
-    return {
-      back: { type: 'link', to: `/photos/table/${tableId}`, label: 'Your table' },
-      forward: { type: 'link', to: '/photos/wall', label: 'Photo wall' },
-    }
-  }
-
-  if (location.pathname.match(/^\/photos\/table\/[^/]+$/)) {
-    return {
-      back: { type: 'link', to: '/photos', label: 'All tables' },
-      forward: { type: 'link', to: '/photos/wall', label: 'Photo wall' },
-    }
-  }
-
   return null
 }
 
 function NavBack({ back }) {
   if (!back) return <span className="floating-poll-nav-spacer" />
+
+  if (back.type === 'action') {
+    return (
+      <button
+        type="button"
+        className="floating-poll-nav-btn floating-poll-nav-back floating-poll-nav-btn-cta"
+        onClick={back.onClick}
+        disabled={back.disabled}
+        aria-label={back.ariaLabel ?? back.label}
+      >
+        <span className="floating-poll-nav-icon" aria-hidden="true">
+          {back.icon}
+        </span>
+        <span className="floating-poll-nav-label">{back.label}</span>
+      </button>
+    )
+  }
 
   if (back.type === 'link') {
     return (
@@ -154,6 +144,23 @@ function NavForward({ forward }) {
         <span className="floating-poll-nav-label">{forward.label}</span>
         <span className="floating-poll-nav-icon" aria-hidden="true">
           ↻
+        </span>
+      </button>
+    )
+  }
+
+  if (forward.type === 'action') {
+    return (
+      <button
+        type="button"
+        className="floating-poll-nav-btn floating-poll-nav-forward floating-poll-nav-btn-cta"
+        onClick={forward.onClick}
+        disabled={forward.disabled}
+        aria-label={forward.ariaLabel ?? forward.label}
+      >
+        <span className="floating-poll-nav-label">{forward.label}</span>
+        <span className="floating-poll-nav-icon" aria-hidden="true">
+          {forward.icon}
         </span>
       </button>
     )

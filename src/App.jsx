@@ -9,11 +9,7 @@ import AdminPollPage from './pages/AdminPollPage'
 import HomePage from './pages/HomePage'
 import PollsPage from './pages/PollsPage'
 import ResultsPage from './pages/ResultsPage'
-import OpenPhotoUploadPage from './pages/OpenPhotoUploadPage'
-import PhotosHomePage from './pages/PhotosHomePage'
 import PhotoWallPage from './pages/PhotoWallPage'
-import TablePhotoGuestPage from './pages/TablePhotoGuestPage'
-import TablePhotoUploadPage from './pages/TablePhotoUploadPage'
 import VotePage from './pages/VotePage'
 
 export default function App() {
@@ -26,11 +22,14 @@ export default function App() {
             <Route path="polls" element={<PollsPage />} />
             <Route path="vote" element={<VotePage />} />
             <Route path="results" element={<ResultsPage />} />
-            <Route path="photos" element={<PhotosHomePage />} />
-            <Route path="photos/upload" element={<OpenPhotoUploadPage />} />
+            <Route path="photos" element={<Navigate to="/photos/wall" replace />} />
+            <Route path="photos/upload" element={<Navigate to="/photos/wall" replace />} />
             <Route path="photos/wall" element={<PhotoWallPage />} />
-            <Route path="photos/table/:tableId" element={<TablePhotoGuestPage />} />
-            <Route path="photos/table/:tableId/upload" element={<TablePhotoUploadPage />} />
+            <Route path="photos/table/:tableId" element={<Navigate to="/photos/wall" replace />} />
+            <Route
+              path="photos/table/:tableId/upload"
+              element={<Navigate to="/photos/wall" replace />}
+            />
             <Route path="polls/:pollId" element={<Navigate to="/polls" replace />} />
 
             <Route path="admin/login" element={<AdminLoginPage />} />

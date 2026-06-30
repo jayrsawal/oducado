@@ -1,20 +1,24 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { useFeedNav } from '../contexts/FeedNavContext'
-import FeedDisplayNamePrompt from './FeedDisplayNamePrompt'
+import { useFeedDisplayName } from '../hooks/useFeedDisplayName'
+import { useAlbumPhotoSocial } from '../hooks/useAlbumPhotoSocial'
+import { isMyPhoto } from '../lib/photoOwnership'
 import PhotoFeedPost from './PhotoFeedPost'
 import PhotoFeedStories from './PhotoFeedStories'
 import PhotoStoryViewer from './PhotoStoryViewer'
 import PhotoLightbox from './PhotoWallExtras'
-import { useAlbumPhotoSocial } from '../hooks/useAlbumPhotoSocial'
-import { useFeedDisplayName } from '../hooks/useFeedDisplayName'
 import { buildTableStories } from '../lib/photoStoryGroups'
 
-export function PhotoWallFeed({ albumId, photos, onRefresh }) {
+export function PhotoWallFeed({
+  albumId,
+  photos,
+  deviceId,
+  onDeletePhoto,
+  deleting = false,
+  onRegisterRefreshExtra,
+}) {
   const [lightboxPhoto, setLightboxPhoto] = useState(null)
   const [storyView, setStoryView] = useState(null)
-  const [refreshing, setRefreshing] = useState(false)
-  const { setFeedNav, clearFeedNav } = useFeedNav()
-  const { displayName, needsPrompt, setDisplayName } = useFeedDisplayName()
+  const { displayName } = useFeedDisplayName()
   const { socialByPhotoId, loading, error, toggleLike, postComment, reload: reloadSocial } =
     useAlbumPhotoSocial(albumId, photos)
 
@@ -25,67 +29,67 @@ export function PhotoWallFeed({ albumId, photos, onRefresh }) {
 
   const tableStories = useMemo(() => buildTableStories(photos), [photos])
 
-  const handleRefresh = useCallback(async () => {
-    if (refreshing || !onRefresh) return
-
-    setRefreshing(true)
-    try {
-      await Promise.all([onRefresh(), reloadSocial()])
-    } catch {
-      // Errors surface via hooks on next render
-    } finally {
-      setRefreshing(false)
-    }
-  }, [onRefresh, refreshing, reloadSocial])
+  const registerRefreshExtra = useCallback(async () => {
+    await reloadSocial()
+  }, [reloadSocial])
 
   useEffect(() => {
-    setFeedNav({
-      refreshing,
-      onRefresh: handleRefresh,
-    })
+    onRegisterRefreshExtra?.(registerRefreshExtra)
+    return () => onRegisterRefreshExtra?.(null)
+  }, [onRegisterRefreshExtra, registerRefreshExtra])
 
-    return () => clearFeedNav()
-  }, [clearFeedNav, handleRefresh, refreshing, setFeedNav])
-
-  if (ordered.length === 0) {
-    return (
-      <>
-        {needsPrompt && <FeedDisplayNamePrompt onSave={setDisplayName} />}
-        <p className="poll-hint">No photos yet. Be the first to share a favorite moment!</p>
-      </>
-    )
-  }
+  const handleDeletePhoto = useCallback(
+    async (photo) => {
+      await onDeletePhoto?.(photo)
+      setLightboxPhoto((current) => (current?.id === photo.id ? null : current))
+    },
+    [onDeletePhoto]
+  )
 
   return (
     <>
-      {needsPrompt && <FeedDisplayNamePrompt onSave={setDisplayName} />}
       {error && <p className="poll-message poll-message-error">{error}</p>}
-      {loading && Object.keys(socialByPhotoId).length === 0 && (
+      {loading && Object.keys(socialByPhotoId).length === 0 && ordered.length > 0 && (
         <p className="poll-hint">Loading feed…</p>
       )}
-      <PhotoFeedStories
-        stories={tableStories}
-        onSelectStory={(storyIndex) => setStoryView({ storyIndex, photoIndex: 0 })}
-      />
-      <div className="photo-feed">
-        {ordered.map((photo) => (
-          <PhotoFeedPost
-            key={photo.id}
-            photo={photo}
-            social={socialByPhotoId[photo.id]}
-            userDisplayName={displayName}
-            onToggleLike={toggleLike}
-            onPostComment={postComment}
-            onImageClick={setLightboxPhoto}
-            busy={loading}
-          />
-        ))}
-      </div>
+
+      {tableStories.length > 0 && (
+        <PhotoFeedStories
+          stories={tableStories}
+          onSelectStory={(storyIndex) => setStoryView({ storyIndex, photoIndex: 0 })}
+        />
+      )}
+
+      {ordered.length === 0 ? (
+        <p className="poll-hint">No photos yet. Be the first to share a favorite moment!</p>
+      ) : (
+        <div className="photo-feed">
+          {ordered.map((photo) => (
+            <PhotoFeedPost
+              key={photo.id}
+              photo={photo}
+              social={socialByPhotoId[photo.id]}
+              userDisplayName={displayName}
+              onToggleLike={toggleLike}
+              onPostComment={postComment}
+              onImageClick={setLightboxPhoto}
+              onDelete={handleDeletePhoto}
+              canDelete={isMyPhoto(photo, deviceId)}
+              busy={loading}
+              deleting={deleting}
+            />
+          ))}
+        </div>
+      )}
+
       <PhotoLightbox
         photo={lightboxPhoto}
         photos={ordered}
         onPhotoChange={setLightboxPhoto}
         onClose={() => setLightboxPhoto(null)}
+        onDelete={handleDeletePhoto}
+        canDelete={lightboxPhoto ? isMyPhoto(lightboxPhoto, deviceId) : false}
+        deleting={deleting}
       />
       {storyView && (
         <PhotoStoryViewer

@@ -79,39 +79,28 @@ export default function HomePage() {
         </article>
 
         <article className={`home-landing-card${album ? '' : ' home-landing-card-muted'}`}>
-          <p className="home-landing-card-eyebrow">Photo drop box</p>
+          <p className="home-landing-card-eyebrow">Photo feed</p>
           <h2 className="home-landing-card-title">
             {album ? album.title : 'Share your photos'}
           </h2>
           {album ? (
             <p className="poll-hint home-landing-card-hint">
               {album.status === 'open'
-                ? 'Scan to share bulk photos.'
-                : 'Uploads are closed.'}
+                ? 'Scan to open the photo feed — share moments and tag your table.'
+                : 'Uploads are closed — browse what everyone shared.'}
             </p>
           ) : (
             <p className="poll-hint home-landing-card-hint">
               The photo album is being set up. Check back soon.
             </p>
           )}
-          <PageQRCode path="/photos/upload" linkTo="/photos/upload" label="Scan to share photos" />
+          <PageQRCode path="/photos/wall" linkTo="/photos/wall" label="Scan to open photo feed" />
           <Link
-            to="/photos/upload"
+            to="/photos/wall"
             className="poll-button poll-button-primary home-landing-card-btn"
           >
-            Share a photo
+            Open photo feed
           </Link>
-          <Link
-            to="/photos"
-            className="home-landing-card-secondary"
-          >
-            Table uploads →
-          </Link>
-          {album && (
-            <Link to="/photos/wall" className="home-landing-card-secondary">
-              View the photo wall →
-            </Link>
-          )}
         </article>
       </div>
     </div>

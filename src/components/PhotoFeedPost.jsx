@@ -30,7 +30,10 @@ export default function PhotoFeedPost({
   onToggleLike,
   onPostComment,
   onImageClick,
+  onDelete,
+  canDelete = false,
   busy = false,
+  deleting = false,
 }) {
   const [commentBody, setCommentBody] = useState('')
   const [submitting, setSubmitting] = useState(false)
@@ -41,9 +44,11 @@ export default function PhotoFeedPost({
   const likedByMe = social?.likedByMe ?? false
   const comments = social?.comments ?? []
 
-  const displayName = photo.is_open_upload ? 'Quick share' : photo.display_name
+  const displayName = photo.display_name?.trim() || 'Guest'
   const subtitle = photo.is_open_upload
-    ? 'Open upload'
+    ? photo.table_id
+      ? photo.table_name ?? 'Table'
+      : 'Shared Moment'
     : photo.table_name ?? 'Family reunion'
 
   async function handleLike() {
@@ -73,6 +78,15 @@ export default function PhotoFeedPost({
       setLocalError(err.message ?? 'Could not post comment')
     } finally {
       setSubmitting(false)
+    }
+  }
+
+  async function handleDelete() {
+    if (!canDelete || !onDelete || deleting) return
+    try {
+      await onDelete(photo)
+    } catch (err) {
+      setLocalError(err.message ?? 'Could not remove photo')
     }
   }
 
@@ -128,6 +142,19 @@ export default function PhotoFeedPost({
               <path d="M20 2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h14l4 4V4c0-1.1-.9-2-2-2zm0 15.17L18.83 16H4V4h16v13.17z" />
             </svg>
           </button>
+          {canDelete && onDelete && (
+            <button
+              type="button"
+              className="photo-feed-action-btn photo-feed-delete-btn"
+              onClick={handleDelete}
+              disabled={busy || deleting}
+              aria-label="Remove your photo"
+            >
+              <svg className="photo-feed-icon" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z" />
+              </svg>
+            </button>
+          )}
         </div>
       </div>
 

@@ -1,8 +1,11 @@
-import { useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import PhotoWallCarousel, { PhotoWallGallery } from '../components/PhotoWall'
 import { PhotoWallFeed } from '../components/PhotoWallFeed'
+import PhotoWallUpload from '../components/PhotoWallUpload'
 import { useActivePhotoAlbum } from '../hooks/useActivePhotoAlbum'
 import { useAlbumPhotos } from '../hooks/useAlbumPhotos'
+import { getDeviceId } from '../lib/deviceId'
+import { deleteGuestPhoto } from '../lib/guestPhoto'
 
 export default function PhotoWallPage() {
   const { album, loading: albumLoading, error: albumError } = useActivePhotoAlbum({
@@ -11,6 +14,38 @@ export default function PhotoWallPage() {
   const { photos, loading: photosLoading, error: photosError, reload } = useAlbumPhotos(album?.id)
   const [mode, setMode] = useState('feed')
   const [slideSeconds, setSlideSeconds] = useState(7)
+  const [deleting, setDeleting] = useState(false)
+  const [deleteError, setDeleteError] = useState(null)
+  const refreshExtraRef = useRef(null)
+  const deviceId = getDeviceId()
+
+  const handleRegisterRefreshExtra = useCallback((handler) => {
+    refreshExtraRef.current = handler
+  }, [])
+
+  const runRefreshExtra = useCallback(async () => {
+    await refreshExtraRef.current?.()
+  }, [])
+
+  const handleDeletePhoto = useCallback(
+    async (photo) => {
+      if (!window.confirm('Remove this photo?')) return
+
+      setDeleting(true)
+      setDeleteError(null)
+      try {
+        await deleteGuestPhoto(photo.id, deviceId)
+        await reload()
+        await runRefreshExtra()
+      } catch (err) {
+        setDeleteError(err.message ?? 'Could not remove photo')
+        throw err
+      } finally {
+        setDeleting(false)
+      }
+    },
+    [deviceId, reload, runRefreshExtra]
+  )
 
   if (albumLoading || photosLoading) {
     return <p className="poll-loading">Loading photo wall…</p>
@@ -36,6 +71,8 @@ export default function PhotoWallPage() {
     )
   }
 
+  const navActive = mode === 'feed' || mode === 'gallery'
+
   return (
     <div className="poll-page art-deco-border poll-page-with-float-nav">
       <header className="poll-page-header poll-page-header-compact">
@@ -43,6 +80,15 @@ export default function PhotoWallPage() {
         <h1 className="poll-page-title">{album.title}</h1>
         <p className="poll-page-subtitle">Favorite moments shared by our family</p>
       </header>
+
+      <PhotoWallUpload
+        albumId={album.id}
+        album={album}
+        photos={photos}
+        onRefresh={reload}
+        onRegisterRefreshExtra={runRefreshExtra}
+        navActive={navActive}
+      />
 
       <div className="photo-wall-mode-toggle" role="tablist" aria-label="Photo wall view">
         <button
@@ -74,6 +120,10 @@ export default function PhotoWallPage() {
         </button>
       </div>
 
+      {deleteError && (
+        <p className="poll-message poll-message-error photo-wall-delete-error">{deleteError}</p>
+      )}
+
       {mode === 'carousel' && (
         <div className="photo-wall-carousel-settings">
           <label className="photo-wall-interval-label">
@@ -99,9 +149,21 @@ export default function PhotoWallPage() {
           uploadsOpen={album.status === 'open'}
         />
       ) : mode === 'gallery' ? (
-        <PhotoWallGallery photos={photos} />
+        <PhotoWallGallery
+          photos={photos}
+          deviceId={deviceId}
+          onDeletePhoto={handleDeletePhoto}
+          deleting={deleting}
+        />
       ) : (
-        <PhotoWallFeed albumId={album.id} photos={photos} onRefresh={reload} />
+        <PhotoWallFeed
+          albumId={album.id}
+          photos={photos}
+          deviceId={deviceId}
+          onDeletePhoto={handleDeletePhoto}
+          deleting={deleting}
+          onRegisterRefreshExtra={handleRegisterRefreshExtra}
+        />
       )}
     </div>
   )

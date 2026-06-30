@@ -40,21 +40,16 @@ export function PhotoWallUploadCtaSlide({ uploadsOpen = true, fullscreen = false
           : 'Photo uploads are closed, but you can still browse everything shared so far.'}
       </p>
       {uploadsOpen && (
-        <>
-          <PageQRCode
-            path="/photos/upload"
-            linkTo="/photos/upload"
-            label="Scan to share photos"
-            size={qrSize}
-          />
-          <Link to="/photos" className="photo-wall-cta-link">
-            Or find your table to upload →
-          </Link>
-        </>
+        <PageQRCode
+          path="/photos/wall"
+          linkTo="/photos/wall"
+          label="Scan to open photo feed"
+          size={qrSize}
+        />
       )}
       {!uploadsOpen && (
-        <Link to="/photos" className="poll-button poll-button-secondary poll-button-small">
-          Browse photo drop box
+        <Link to="/photos/wall" className="poll-button poll-button-secondary poll-button-small">
+          Open photo feed
         </Link>
       )}
     </div>
@@ -63,7 +58,16 @@ export function PhotoWallUploadCtaSlide({ uploadsOpen = true, fullscreen = false
 
 const SWIPE_THRESHOLD_PX = 48
 
-export default function PhotoLightbox({ photo, photos, onPhotoChange, onClose, onRotate }) {
+export default function PhotoLightbox({
+  photo,
+  photos,
+  onPhotoChange,
+  onClose,
+  onRotate,
+  onDelete,
+  canDelete = false,
+  deleting = false,
+}) {
   useBodyScrollLock(Boolean(photo))
   const touchStartX = useRef(null)
 
@@ -180,6 +184,44 @@ export default function PhotoLightbox({ photo, photos, onPhotoChange, onClose, o
             createdAt={photo.created_at}
             size="large"
           />
+          {(onRotate || (canDelete && onDelete)) && (
+            <div className="photo-lightbox-actions">
+              {onRotate && (
+                <button
+                  type="button"
+                  className="photo-lightbox-action-btn"
+                  onClick={() => onRotate(photo)}
+                  disabled={deleting}
+                  aria-label="Rotate photo"
+                  title="Rotate photo"
+                >
+                  <svg viewBox="0 0 24 24" aria-hidden="true" className="photo-lightbox-action-icon">
+                    <path
+                      fill="currentColor"
+                      d="M7.34 6.41 5.93 5 2 8.93l3.93 3.93 1.41-1.41L6.83 10H13a5 5 0 0 1 5 5v2h2v-2a7 7 0 0 0-7-7H6.83l.51-.59zM5 20a7 7 0 0 0 7-7h6.17l-.51.59 1.41 1.41L22 15.07l-3.93-3.93-1.41 1.41L6.83 13H11a5 5 0 0 0-5 5v2H5v-2z"
+                    />
+                  </svg>
+                </button>
+              )}
+              {canDelete && onDelete && (
+                <button
+                  type="button"
+                  className="photo-lightbox-action-btn photo-lightbox-action-delete"
+                  onClick={() => onDelete(photo)}
+                  disabled={deleting}
+                  aria-label={deleting ? 'Removing photo' : 'Remove photo'}
+                  title={deleting ? 'Removing…' : 'Remove photo'}
+                >
+                  <svg viewBox="0 0 24 24" aria-hidden="true" className="photo-lightbox-action-icon">
+                    <path
+                      fill="currentColor"
+                      d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"
+                    />
+                  </svg>
+                </button>
+              )}
+            </div>
+          )}
         </div>
         {canNavigate && (
           <figcaption className="photo-lightbox-counter">
@@ -187,17 +229,6 @@ export default function PhotoLightbox({ photo, photos, onPhotoChange, onClose, o
           </figcaption>
         )}
       </figure>
-      {onRotate && (
-        <div className="photo-lightbox-toolbar">
-          <button
-            type="button"
-            className="poll-button poll-button-secondary poll-button-small"
-            onClick={() => onRotate(photo)}
-          >
-            Rotate photo
-          </button>
-        </div>
-      )}
     </div>,
     document.body
   )

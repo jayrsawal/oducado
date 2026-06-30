@@ -133,7 +133,7 @@ export default function PollGuestList({ poll, showEyebrow = false }) {
       </div>
 
       <p className="poll-page-footer-link">
-        <Link to="/photos">Share your reunion photos →</Link>
+        <Link to="/photos/wall">Share your reunion photos →</Link>
       </p>
     </div>
   )

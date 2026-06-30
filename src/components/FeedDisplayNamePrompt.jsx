@@ -2,7 +2,12 @@ import { useId, useState } from 'react'
 import useBodyScrollLock from '../hooks/useBodyScrollLock'
 import { getRecentVoterNames } from '../lib/deviceId'
 
-export default function FeedDisplayNamePrompt({ onSave }) {
+export default function FeedDisplayNamePrompt({
+  onSave,
+  eyebrow = 'Photo wall',
+  title = 'What should we call you?',
+  description = "Pick a display name for likes and comments. We'll remember it on this device.",
+}) {
   const [name, setName] = useState('')
   const [error, setError] = useState(null)
   const inputId = useId()
@@ -28,13 +33,11 @@ export default function FeedDisplayNamePrompt({ onSave }) {
         aria-modal="true"
         aria-labelledby={inputId}
       >
-        <p className="feed-name-prompt-eyebrow">Photo wall</p>
+        <p className="feed-name-prompt-eyebrow">{eyebrow}</p>
         <h2 className="feed-name-prompt-title" id={inputId}>
-          What should we call you?
+          {title}
         </h2>
-        <p className="feed-name-prompt-desc">
-          Pick a display name for likes and comments. We&apos;ll remember it on this device.
-        </p>
+        <p className="feed-name-prompt-desc">{description}</p>
         <form className="feed-name-prompt-form" onSubmit={handleSubmit}>
           <input
             className="poll-input feed-name-prompt-input"
