@@ -1,0 +1,65 @@
+import { useId, useState } from 'react'
+import useBodyScrollLock from '../hooks/useBodyScrollLock'
+import { getRecentVoterNames } from '../lib/deviceId'
+
+export default function FeedDisplayNamePrompt({ onSave }) {
+  const [name, setName] = useState('')
+  const [error, setError] = useState(null)
+  const inputId = useId()
+  const recentNames = getRecentVoterNames()
+
+  useBodyScrollLock(true)
+
+  function handleSubmit(event) {
+    event.preventDefault()
+    const trimmed = name.trim()
+    if (!trimmed) {
+      setError('Please enter your name')
+      return
+    }
+    onSave(trimmed)
+  }
+
+  return (
+    <div className="feed-name-prompt-backdrop" role="presentation">
+      <div
+        className="feed-name-prompt"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={inputId}
+      >
+        <p className="feed-name-prompt-eyebrow">Photo wall</p>
+        <h2 className="feed-name-prompt-title" id={inputId}>
+          What should we call you?
+        </h2>
+        <p className="feed-name-prompt-desc">
+          Pick a display name for likes and comments. We&apos;ll remember it on this device.
+        </p>
+        <form className="feed-name-prompt-form" onSubmit={handleSubmit}>
+          <input
+            className="poll-input feed-name-prompt-input"
+            value={name}
+            onChange={(event) => {
+              setName(event.target.value)
+              setError(null)
+            }}
+            placeholder="Your name"
+            autoComplete="name"
+            autoFocus
+            maxLength={80}
+            list="feed-name-suggestions"
+          />
+          <datalist id="feed-name-suggestions">
+            {recentNames.map((entry) => (
+              <option key={entry} value={entry} />
+            ))}
+          </datalist>
+          {error && <p className="poll-message poll-message-error">{error}</p>}
+          <button type="submit" className="poll-button poll-button-primary feed-name-prompt-submit">
+            Continue
+          </button>
+        </form>
+      </div>
+    </div>
+  )
+}

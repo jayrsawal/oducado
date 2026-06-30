@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Link } from 'react-router-dom'
 import useBodyScrollLock from '../hooks/useBodyScrollLock'
@@ -61,19 +61,73 @@ export function PhotoWallUploadCtaSlide({ uploadsOpen = true, fullscreen = false
   )
 }
 
-export default function PhotoLightbox({ photo, onClose, onRotate }) {
+const SWIPE_THRESHOLD_PX = 48
+
+export default function PhotoLightbox({ photo, photos, onPhotoChange, onClose, onRotate }) {
   useBodyScrollLock(Boolean(photo))
+  const touchStartX = useRef(null)
+
+  const navigablePhotos = photos?.length ? photos : photo ? [photo] : []
+  const currentIndex = photo
+    ? navigablePhotos.findIndex((entry) => entry.id === photo.id)
+    : -1
+  const canNavigate = navigablePhotos.length > 1 && currentIndex >= 0
+  const hasPrev = canNavigate && currentIndex > 0
+  const hasNext = canNavigate && currentIndex < navigablePhotos.length - 1
+
+  function goToIndex(index) {
+    if (!onPhotoChange || index < 0 || index >= navigablePhotos.length) return
+    onPhotoChange(navigablePhotos[index])
+  }
+
+  function goPrev() {
+    if (hasPrev) goToIndex(currentIndex - 1)
+  }
+
+  function goNext() {
+    if (hasNext) goToIndex(currentIndex + 1)
+  }
 
   useEffect(() => {
     if (!photo) return undefined
 
     function onKeyDown(event) {
-      if (event.key === 'Escape') onClose()
+      if (event.key === 'Escape') {
+        onClose()
+        return
+      }
+      if (!canNavigate) return
+      if (event.key === 'ArrowLeft' && currentIndex > 0) {
+        event.preventDefault()
+        onPhotoChange?.(navigablePhotos[currentIndex - 1])
+      }
+      if (event.key === 'ArrowRight' && currentIndex < navigablePhotos.length - 1) {
+        event.preventDefault()
+        onPhotoChange?.(navigablePhotos[currentIndex + 1])
+      }
     }
 
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [onClose, photo])
+  }, [canNavigate, currentIndex, navigablePhotos, onClose, onPhotoChange, photo])
+
+  function handleTouchStart(event) {
+    if (!canNavigate) return
+    touchStartX.current = event.changedTouches[0]?.clientX ?? null
+  }
+
+  function handleTouchEnd(event) {
+    if (!canNavigate || touchStartX.current == null) return
+
+    const endX = event.changedTouches[0]?.clientX
+    if (endX == null) return
+
+    const delta = endX - touchStartX.current
+    touchStartX.current = null
+
+    if (delta <= -SWIPE_THRESHOLD_PX) goNext()
+    else if (delta >= SWIPE_THRESHOLD_PX) goPrev()
+  }
 
   if (!photo) return null
 
@@ -93,9 +147,33 @@ export default function PhotoLightbox({ photo, onClose, onRotate }) {
         onClick={onClose}
         aria-label="Close photo preview"
       />
-      <figure className="photo-lightbox-panel">
+      {hasPrev && (
+        <button
+          type="button"
+          className="photo-lightbox-nav photo-lightbox-nav-prev"
+          onClick={goPrev}
+          aria-label="Previous photo"
+        >
+          ‹
+        </button>
+      )}
+      {hasNext && (
+        <button
+          type="button"
+          className="photo-lightbox-nav photo-lightbox-nav-next"
+          onClick={goNext}
+          aria-label="Next photo"
+        >
+          ›
+        </button>
+      )}
+      <figure
+        className="photo-lightbox-panel"
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+      >
         <div className="photo-lightbox-image-wrap">
-          <img src={photo.public_url} alt="" className="photo-lightbox-image" />
+          <img src={photo.public_url} alt="" className="photo-lightbox-image" key={photo.id} />
           <PhotoWatermark
             displayName={photo.display_name}
             tableName={photo.table_name}
@@ -103,6 +181,11 @@ export default function PhotoLightbox({ photo, onClose, onRotate }) {
             size="large"
           />
         </div>
+        {canNavigate && (
+          <figcaption className="photo-lightbox-counter">
+            {currentIndex + 1} / {navigablePhotos.length}
+          </figcaption>
+        )}
       </figure>
       {onRotate && (
         <div className="photo-lightbox-toolbar">

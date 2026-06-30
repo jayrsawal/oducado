@@ -3458,6 +3458,47 @@
   max-width: min(96vw, 1200px);
   max-height: calc(100vh - 40px);
   margin: 0;
+  touch-action: pan-y pinch-zoom;
+}
+
+.photo-lightbox-nav {
+  position: absolute;
+  top: 50%;
+  z-index: 2;
+  transform: translateY(-50%);
+  width: 48px;
+  height: 48px;
+  border: 2px solid rgba(212, 175, 55, 0.45);
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.55);
+  color: #d4af37;
+  font-size: 2rem;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 0 4px;
+}
+
+.photo-lightbox-nav-prev {
+  left: calc(12px + env(safe-area-inset-left));
+}
+
+.photo-lightbox-nav-next {
+  right: calc(12px + env(safe-area-inset-right));
+}
+
+.photo-lightbox-nav:focus-visible {
+  outline: 2px solid #d4af37;
+  outline-offset: 2px;
+}
+
+.photo-lightbox-counter {
+  margin: 12px 0 0;
+  font-size: 0.85rem;
+  color: rgba(245, 245, 245, 0.65);
+  letter-spacing: 0.06em;
 }
 
 .photo-lightbox-image-wrap {
@@ -3585,6 +3626,541 @@
   height: 100%;
   object-fit: cover;
   display: block;
+}
+
+/* Instagram-style event gallery grid */
+.photo-event-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 3px;
+  margin: 0 -4px;
+}
+
+.photo-event-grid-item {
+  position: relative;
+  margin: 0;
+  padding: 0;
+  border: none;
+  aspect-ratio: 1;
+  overflow: hidden;
+  cursor: pointer;
+  background: rgba(0, 0, 0, 0.35);
+}
+
+.photo-event-grid-item:focus-visible {
+  outline: 2px solid #d4af37;
+  outline-offset: 2px;
+}
+
+.photo-event-grid-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform 0.2s ease;
+}
+
+.photo-event-grid-item:hover .photo-event-grid-image,
+.photo-event-grid-item:focus-visible .photo-event-grid-image {
+  transform: scale(1.04);
+}
+
+/* Instagram-style photo feed */
+.photo-feed-stories-wrap {
+  max-width: 470px;
+  margin: 0 auto 20px;
+}
+
+.photo-feed-stories {
+  display: flex;
+  gap: 14px;
+  overflow-x: auto;
+  padding: 4px 2px 8px;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.photo-feed-stories::-webkit-scrollbar {
+  display: none;
+}
+
+.photo-feed-stories-item {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  width: 72px;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: inherit;
+}
+
+.photo-feed-stories-ring {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 68px;
+  height: 68px;
+  border-radius: 50%;
+  padding: 3px;
+  background: linear-gradient(135deg, #d4af37, #f5e6a8, #c9a227, #d4af37);
+}
+
+.photo-feed-stories-thumb {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 2px solid #0a0a0a;
+  background: #111;
+}
+
+.photo-feed-stories-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.photo-feed-stories-label {
+  max-width: 72px;
+  font-size: 0.68rem;
+  line-height: 1.2;
+  text-align: center;
+  color: rgba(245, 245, 245, 0.82);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.photo-story-viewer {
+  position: fixed;
+  inset: 0;
+  z-index: 3200;
+  background: #000;
+  display: flex;
+  flex-direction: column;
+}
+
+.photo-story-viewer-top {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 2;
+  padding: calc(10px + env(safe-area-inset-top)) 12px 0;
+  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.55), transparent);
+}
+
+.photo-story-progress {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 12px;
+}
+
+.photo-story-progress-segment {
+  flex: 1;
+  height: 2px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.35);
+  overflow: hidden;
+}
+
+.photo-story-progress-fill {
+  height: 100%;
+  width: 0;
+  background: #fff;
+  border-radius: inherit;
+}
+
+.photo-story-progress-fill-complete {
+  width: 100%;
+}
+
+.photo-story-progress-fill-active {
+  animation-name: photo-story-progress;
+  animation-timing-function: linear;
+  animation-fill-mode: forwards;
+}
+
+.photo-story-progress-fill-paused {
+  animation-play-state: paused;
+}
+
+@keyframes photo-story-progress {
+  from {
+    width: 0%;
+  }
+  to {
+    width: 100%;
+  }
+}
+
+.photo-story-viewer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.photo-story-viewer-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.photo-story-viewer-avatar {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.85rem;
+  color: #1a1a1a;
+  background: linear-gradient(135deg, #d4af37, #f5e6a8);
+}
+
+.photo-story-viewer-name {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #fff;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.photo-story-viewer-close {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.photo-story-viewer-stage {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: #000;
+  cursor: pointer;
+  touch-action: pan-y pinch-zoom;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.photo-story-viewer-frame {
+  position: relative;
+  width: 100%;
+  margin: 0;
+  flex-shrink: 0;
+}
+
+.photo-story-viewer-image {
+  width: 100%;
+  height: auto;
+  display: block;
+  vertical-align: middle;
+}
+
+.photo-story-viewer-stage .photo-watermark {
+  pointer-events: none;
+}
+
+.photo-feed {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  max-width: 470px;
+  margin: 0 auto;
+}
+
+.photo-feed-post {
+  background: rgba(8, 8, 8, 0.92);
+  border: 1px solid rgba(212, 175, 55, 0.18);
+  border-radius: 0;
+  overflow: hidden;
+}
+
+.photo-feed-post-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  min-height: 52px;
+}
+
+.photo-feed-post-avatar {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.85rem;
+  color: #1a1a1a;
+  background: linear-gradient(135deg, #d4af37, #f5e6a8);
+  border: 1px solid rgba(212, 175, 55, 0.5);
+}
+
+.photo-feed-post-meta {
+  flex: 1;
+  min-width: 0;
+}
+
+.photo-feed-post-author {
+  margin: 0;
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: #f5f5f5;
+  line-height: 1.2;
+}
+
+.photo-feed-post-subtitle {
+  margin: 1px 0 0;
+  font-size: 0.72rem;
+  color: rgba(245, 245, 245, 0.5);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.photo-feed-post-media {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  background: #000;
+  overflow: hidden;
+}
+
+.photo-feed-post-image-btn {
+  display: block;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: #000;
+  cursor: pointer;
+}
+
+.photo-feed-post-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  display: block;
+}
+
+.photo-feed-post-toolbar {
+  padding: 8px 10px 0;
+}
+
+.photo-feed-post-actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.photo-feed-action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: #f5f5f5;
+  cursor: pointer;
+}
+
+.photo-feed-action-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.photo-feed-icon {
+  width: 24px;
+  height: 24px;
+  fill: currentColor;
+}
+
+.photo-feed-like-btn-active {
+  color: #ed4956;
+}
+
+.photo-feed-likes-line {
+  margin: 0;
+  padding: 6px 12px 0;
+  font-size: 0.88rem;
+  color: #f5f5f5;
+}
+
+.photo-feed-likes-line strong {
+  font-weight: 700;
+}
+
+.photo-feed-comments {
+  list-style: none;
+  margin: 0;
+  padding: 8px 12px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.photo-feed-comment {
+  font-size: 0.88rem;
+  line-height: 1.35;
+  color: rgba(245, 245, 245, 0.92);
+}
+
+.photo-feed-comment-author {
+  font-weight: 600;
+  margin-right: 6px;
+}
+
+.photo-feed-comment-body {
+  word-break: break-word;
+}
+
+.photo-feed-post-time {
+  display: block;
+  padding: 6px 12px 0;
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: rgba(245, 245, 245, 0.4);
+}
+
+.photo-feed-comment-form {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px 12px;
+  border-top: 1px solid rgba(212, 175, 55, 0.1);
+  margin-top: 8px;
+}
+
+.photo-feed-comment-input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  padding: 8px 0;
+  font-size: 0.88rem;
+}
+
+.photo-feed-comment-input:focus {
+  outline: none;
+  box-shadow: none;
+}
+
+.photo-feed-comment-submit {
+  flex-shrink: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: #d4af37;
+  font-size: 0.88rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.photo-feed-comment-submit:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.photo-feed-post-error {
+  margin: 0 12px 12px;
+  font-size: 0.85rem;
+}
+
+.feed-name-prompt-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 2100;
+  background: rgba(0, 0, 0, 0.88);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.feed-name-prompt {
+  width: min(100%, 400px);
+  padding: 28px 24px;
+  border: 2px solid #d4af37;
+  border-radius: 8px;
+  background: #111;
+  text-align: center;
+}
+
+.feed-name-prompt-eyebrow {
+  margin: 0 0 8px;
+  font-size: 0.75rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(212, 175, 55, 0.8);
+}
+
+.feed-name-prompt-title {
+  margin: 0 0 10px;
+  font-family: 'Playfair Display', serif;
+  font-size: 1.5rem;
+  color: #d4af37;
+}
+
+.feed-name-prompt-desc {
+  margin: 0 0 20px;
+  font-size: 0.9rem;
+  color: rgba(245, 245, 245, 0.65);
+  line-height: 1.45;
+}
+
+.feed-name-prompt-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  text-align: left;
+}
+
+.feed-name-prompt-input {
+  width: 100%;
+}
+
+.feed-name-prompt-submit {
+  width: 100%;
+  margin-top: 4px;
+}
+
+@media (min-width: 640px) {
+  .photo-event-grid {
+    gap: 4px;
+    border-radius: 8px;
+    overflow: hidden;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -3,7 +3,6 @@ import { createPortal } from 'react-dom'
 import useBodyScrollLock from '../hooks/useBodyScrollLock'
 import PhotoLightbox, { PhotoWallUploadCtaSlide } from './PhotoWallExtras'
 import PhotoWatermark from './PhotoWatermark'
-import TablePhotoGallery from './TablePhotoGallery'
 
 const FADE_MS = 1000
 const CTA_SLIDE_ID = '__upload-cta__'
@@ -201,57 +200,36 @@ export default function PhotoWallCarousel({
 export function PhotoWallGallery({ photos }) {
   const [lightboxPhoto, setLightboxPhoto] = useState(null)
 
-  const { tableGroups, openPhotos } = useMemo(() => {
-    const map = new Map()
+  const ordered = useMemo(
+    () => [...photos].sort((a, b) => new Date(b.created_at) - new Date(a.created_at)),
+    [photos]
+  )
 
-    for (const photo of photos) {
-      if (photo.is_open_upload || !photo.table_id) continue
-
-      if (!map.has(photo.table_id)) {
-        map.set(photo.table_id, {
-          table_id: photo.table_id,
-          table_name: photo.table_name ?? 'Table',
-          photos: [],
-        })
-      }
-      map.get(photo.table_id).photos.push(photo)
-    }
-
-    return {
-      tableGroups: [...map.values()].sort((a, b) =>
-        a.table_name.localeCompare(b.table_name)
-      ),
-      openPhotos: photos.filter((photo) => photo.is_open_upload),
-    }
-  }, [photos])
-
-  if (tableGroups.length === 0 && openPhotos.length === 0) {
+  if (ordered.length === 0) {
     return <p className="poll-hint">No photos yet. Be the first to share a favorite moment!</p>
   }
 
   return (
     <>
-      <div className="photo-wall-gallery">
-        {tableGroups.map((group) => (
-          <TablePhotoGallery
-            key={group.table_id}
-            photos={group.photos}
-            tableName={group.table_name}
-            enlargeable
-            onPhotoClick={setLightboxPhoto}
-          />
+      <div className="photo-event-grid">
+        {ordered.map((photo) => (
+          <button
+            key={photo.id}
+            type="button"
+            className="photo-event-grid-item"
+            onClick={() => setLightboxPhoto(photo)}
+            aria-label={`View photo${photo.display_name ? ` from ${photo.display_name}` : ''}`}
+          >
+            <img src={photo.public_url} alt="" className="photo-event-grid-image" />
+          </button>
         ))}
-        {openPhotos.length > 0 && (
-          <TablePhotoGallery
-            photos={openPhotos}
-            tableName="Quick share"
-            showAttribution={false}
-            enlargeable
-            onPhotoClick={setLightboxPhoto}
-          />
-        )}
       </div>
-      <PhotoLightbox photo={lightboxPhoto} onClose={() => setLightboxPhoto(null)} />
+      <PhotoLightbox
+        photo={lightboxPhoto}
+        photos={ordered}
+        onPhotoChange={setLightboxPhoto}
+        onClose={() => setLightboxPhoto(null)}
+      />
     </>
   )
 }

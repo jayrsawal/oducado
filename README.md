@@ -38,6 +38,10 @@ Migrations live in `supabase/migrations/` and must be run in order:
 | `009_reveal_winners.sql` | Admin-controlled winner reveal after poll closes |
 | `010_guest_photos.sql` | *(superseded)* Poll-tied guest photos — skip if using `011` |
 | `011_standalone_photo_album.sql` | Standalone photo album, roster, tables, and photo wall |
+| `012_album_open_photos.sql` | Open uploads without roster |
+| `013_update_album_guest_photo.sql` | Re-orient guest photos after upload |
+| `014_fix_photo_storage_upload_policy.sql` | Fix storage upload RLS for album photos |
+| `015_album_photo_social.sql` | Likes and comments on photo wall feed |
 
 **Option A — Supabase CLI (recommended)**
 
@@ -230,9 +234,9 @@ The **photo album** is its own feature at **`/admin/photos`** — not tied to a 
 2. **Open photo uploads** on the Details tab when you are ready
 3. **QR codes** tab — print one code per table (guests can also browse **`/photos`** for the same codes on their phone)
 4. Guests scan → pick their name → upload up to **10 photos**, or use **`/photos/upload`** for open sharing (no roster)
-5. Everyone browses **`/photos/wall`** (carousel or gallery) from **`/photos`**, the landing page, or the guest list
+5. Everyone browses **`/photos/wall`** (feed, gallery, or carousel) from **`/photos`**, the landing page, or the guest list
 
-Run migrations **`011_standalone_photo_album.sql`** and **`012_album_open_photos.sql`** (if you already ran `010`, `011` replaces the poll-tied tables). For re-orienting uploaded photos, also run **`013_update_album_guest_photo.sql`**.
+Run migrations **`011`** through **`015`** (see [Database setup](#database-setup)). If you already ran `010`, `011` replaces the poll-tied tables.
 
 ### Install and run
 

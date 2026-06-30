@@ -3,6 +3,7 @@ import FloatingPollNav from './FloatingPollNav'
 import PageTransition from './PageTransition'
 import { VoteNavProvider } from '../contexts/VoteNavContext'
 import { ResultsNavProvider } from '../contexts/ResultsNavContext'
+import { FeedNavProvider } from '../contexts/FeedNavContext'
 import '../App.css'
 import '../polls.css'
 
@@ -32,12 +33,20 @@ export default function Layout() {
             <PollsNavLink />
             <NavLink
               to="/photos"
-              end={false}
+              end
               className={({ isActive }) =>
                 `site-nav-link${isActive ? ' site-nav-link-active' : ''}`
               }
             >
               Photos
+            </NavLink>
+            <NavLink
+              to="/photos/wall"
+              className={({ isActive }) =>
+                `site-nav-link${isActive ? ' site-nav-link-active' : ''}`
+              }
+            >
+              Feed
             </NavLink>
             <Link to="/admin" className="site-nav-link site-nav-link-muted">
               Admin
@@ -46,8 +55,10 @@ export default function Layout() {
         </nav>
         <VoteNavProvider>
           <ResultsNavProvider>
-            <PageTransition />
-            <FloatingPollNav />
+            <FeedNavProvider>
+              <PageTransition />
+              <FloatingPollNav />
+            </FeedNavProvider>
           </ResultsNavProvider>
         </VoteNavProvider>
       </div>

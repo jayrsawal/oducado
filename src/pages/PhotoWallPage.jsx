@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import PhotoWallCarousel, { PhotoWallGallery } from '../components/PhotoWall'
+import { PhotoWallFeed } from '../components/PhotoWallFeed'
 import { useActivePhotoAlbum } from '../hooks/useActivePhotoAlbum'
 import { useAlbumPhotos } from '../hooks/useAlbumPhotos'
 
@@ -7,8 +8,8 @@ export default function PhotoWallPage() {
   const { album, loading: albumLoading, error: albumError } = useActivePhotoAlbum({
     includeClosed: true,
   })
-  const { photos, loading: photosLoading, error: photosError } = useAlbumPhotos(album?.id)
-  const [mode, setMode] = useState('carousel')
+  const { photos, loading: photosLoading, error: photosError, reload } = useAlbumPhotos(album?.id)
+  const [mode, setMode] = useState('feed')
   const [slideSeconds, setSlideSeconds] = useState(7)
 
   if (albumLoading || photosLoading) {
@@ -47,11 +48,11 @@ export default function PhotoWallPage() {
         <button
           type="button"
           role="tab"
-          aria-selected={mode === 'carousel'}
-          className={`photo-wall-mode-btn${mode === 'carousel' ? ' photo-wall-mode-btn-active' : ''}`}
-          onClick={() => setMode('carousel')}
+          aria-selected={mode === 'feed'}
+          className={`photo-wall-mode-btn${mode === 'feed' ? ' photo-wall-mode-btn-active' : ''}`}
+          onClick={() => setMode('feed')}
         >
-          Carousel
+          Feed
         </button>
         <button
           type="button"
@@ -61,6 +62,15 @@ export default function PhotoWallPage() {
           onClick={() => setMode('gallery')}
         >
           Gallery
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={mode === 'carousel'}
+          className={`photo-wall-mode-btn${mode === 'carousel' ? ' photo-wall-mode-btn-active' : ''}`}
+          onClick={() => setMode('carousel')}
+        >
+          Carousel
         </button>
       </div>
 
@@ -88,8 +98,10 @@ export default function PhotoWallPage() {
           intervalSeconds={slideSeconds}
           uploadsOpen={album.status === 'open'}
         />
-      ) : (
+      ) : mode === 'gallery' ? (
         <PhotoWallGallery photos={photos} />
+      ) : (
+        <PhotoWallFeed albumId={album.id} photos={photos} onRefresh={reload} />
       )}
     </div>
   )

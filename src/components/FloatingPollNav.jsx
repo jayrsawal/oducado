@@ -1,5 +1,6 @@
 import { Link, useLocation } from 'react-router-dom'
 import { useResultsNav } from '../contexts/ResultsNavContext'
+import { useFeedNav } from '../contexts/FeedNavContext'
 import { useVoteNav } from '../contexts/VoteNavContext'
 
 const GUEST_PATHS = new Set(['/polls', '/vote', '/results', '/photos', '/photos/wall'])
@@ -8,7 +9,7 @@ function isPhotoGuestPath(pathname) {
   return pathname.startsWith('/photos/table/') || pathname === '/photos/upload'
 }
 
-function guestNav(location, voteNav, resultsNav) {
+function guestNav(location, voteNav, resultsNav, feedNav) {
   if (
     !GUEST_PATHS.has(location.pathname) &&
     !isPhotoGuestPath(location.pathname)
@@ -52,6 +53,7 @@ function guestNav(location, voteNav, resultsNav) {
             label: resultsNav.refreshing ? 'Refreshing…' : 'Refresh',
             disabled: resultsNav.refreshing,
             onClick: resultsNav.onRefresh,
+            ariaLabel: 'Refresh results',
           }
         : null,
     }
@@ -74,7 +76,15 @@ function guestNav(location, voteNav, resultsNav) {
   if (location.pathname === '/photos/wall') {
     return {
       back: { type: 'link', to: '/photos', label: 'Photos' },
-      forward: null,
+      forward: feedNav
+        ? {
+            type: 'refresh',
+            label: feedNav.refreshing ? 'Refreshing…' : 'Refresh',
+            disabled: feedNav.refreshing,
+            onClick: feedNav.onRefresh,
+            ariaLabel: 'Refresh feed',
+          }
+        : null,
     }
   }
 
@@ -139,7 +149,7 @@ function NavForward({ forward }) {
         className="floating-poll-nav-btn floating-poll-nav-forward"
         onClick={forward.onClick}
         disabled={forward.disabled}
-        aria-label="Refresh results"
+        aria-label={forward.ariaLabel ?? 'Refresh'}
       >
         <span className="floating-poll-nav-label">{forward.label}</span>
         <span className="floating-poll-nav-icon" aria-hidden="true">
@@ -163,7 +173,8 @@ export default function FloatingPollNav() {
   const location = useLocation()
   const { voteNav } = useVoteNav()
   const { resultsNav } = useResultsNav()
-  const nav = guestNav(location, voteNav, resultsNav)
+  const { feedNav } = useFeedNav()
+  const nav = guestNav(location, voteNav, resultsNav, feedNav)
 
   if (!nav) return null
 
