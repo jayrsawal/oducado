@@ -6,6 +6,15 @@ export default defineConfig({
   plugins: [react()],
   server: {
     port: 3000,
-    open: true
-  }
+    open: true,
+  },
+  preview: {
+    host: true,
+    allowedHosts: [
+      'localhost',
+      'oducado.com',
+      'www.oducado.com',
+      '.railway.app',
+    ],
+  },
 })
