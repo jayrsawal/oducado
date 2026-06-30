@@ -130,7 +130,7 @@ export default function VotePage() {
   }
 
   if (!voterName) {
-    return <Navigate to="/" replace />
+    return <Navigate to="/polls" replace />
   }
 
   if (pollLoading || loading) {

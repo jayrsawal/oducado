@@ -36,6 +36,8 @@ Migrations live in `supabase/migrations/` and must be run in order:
 | `007_poll_tables.sql` | Seating tables to group guests on the roster |
 | `008_option_images.sql` | Option photos via Supabase Storage |
 | `009_reveal_winners.sql` | Admin-controlled winner reveal after poll closes |
+| `010_guest_photos.sql` | *(superseded)* Poll-tied guest photos — skip if using `011` |
+| `011_standalone_photo_album.sql` | Standalone photo album, roster, tables, and photo wall |
 
 **Option A — Supabase CLI (recommended)**
 
@@ -204,12 +206,33 @@ The Vite + React app connects to Supabase for polls and admin management.
 
 | Path | Who | Purpose |
 |------|-----|---------|
-| `/` | Everyone | Guest list — pick your name |
+| `/` | Everyone | Landing — vote on the live poll or share photos |
+| `/polls` | Everyone | Guest list — pick your name to vote |
 | `/vote?name=…` | Everyone | Ballot for the selected guest |
 | `/results` | Everyone | Live results for the active (or most recent) poll |
+| `/photos` | Everyone | Photo drop box home — table QR codes and link to the wall |
+| `/photos/upload` | Everyone | Open photo upload — no table or name required |
+| `/photos/table/:tableId` | Everyone | Table photo drop box — pick your name |
+| `/photos/table/:tableId/upload?name=…` | Everyone | Upload up to 10 favorite photos |
+| `/photos/wall` | Everyone | Live photo wall (carousel or gallery) |
 | `/admin/login` | Organizers | Sign in |
 | `/admin` | Admins | Poll dashboard |
+| `/admin/photos` | Admins | Photo album — roster, QR codes, upload status |
 | `/admin/polls/:id` | Admins | Edit poll, categories, results, proxy votes |
+
+The landing page (`/`) shows a QR code for **`/polls`** so guests can scan straight to the voting guest list.
+
+### Photo drop box (separate from polls)
+
+The **photo album** is its own feature at **`/admin/photos`** — not tied to a poll. Polls keep their own roster for voting.
+
+1. **Admin → Photo album** — set up tables and guests (or **Import from poll** to copy a poll roster)
+2. **Open photo uploads** on the Details tab when you are ready
+3. **QR codes** tab — print one code per table (guests can also browse **`/photos`** for the same codes on their phone)
+4. Guests scan → pick their name → upload up to **10 photos**, or use **`/photos/upload`** for open sharing (no roster)
+5. Everyone browses **`/photos/wall`** (carousel or gallery) from **`/photos`**, the landing page, or the guest list
+
+Run migrations **`011_standalone_photo_album.sql`** and **`012_album_open_photos.sql`** (if you already ran `010`, `011` replaces the poll-tied tables). For re-orienting uploaded photos, also run **`013_update_album_guest_photo.sql`**.
 
 ### Install and run
 

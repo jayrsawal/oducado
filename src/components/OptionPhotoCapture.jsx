@@ -1,5 +1,7 @@
-import { useEffect, useRef, useState } from 'react'
-import { createPortal } from 'react-dom'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import GuestPhotoCamera from './GuestPhotoCamera'
+import GuestPhotoOrient from './GuestPhotoOrient'
+import { prepareImageBlob, prepareImageFile, previewUrlForBlob } from '../lib/imagePrepare'
 import { removeOptionPhoto, uploadOptionPhoto } from '../lib/optionPhoto'
 
 export default function OptionPhotoCapture({
@@ -10,93 +12,90 @@ export default function OptionPhotoCapture({
   onPhotoChange,
   tilePreview = false,
 }) {
-  const videoRef = useRef(null)
-  const streamRef = useRef(null)
   const fileRef = useRef(null)
   const [open, setOpen] = useState(false)
+  const [orientPreview, setOrientPreview] = useState(null)
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState(null)
-  const [facingMode, setFacingMode] = useState('environment')
 
-  useEffect(() => {
-    if (!open) return undefined
+  const closeOrientPreview = useCallback(() => {
+    setOrientPreview((current) => {
+      if (current?.url) URL.revokeObjectURL(current.url)
+      return null
+    })
+  }, [])
 
-    const previousOverflow = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
-
-    let cancelled = false
-
-    async function startCamera() {
+  const openOrientPreview = useCallback(
+    (blob, { closeCameraAfter = false } = {}) => {
+      closeOrientPreview()
+      setOrientPreview({
+        blob,
+        url: previewUrlForBlob(blob),
+        rotation: 0,
+      })
       setError(null)
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode, width: { ideal: 1280 }, height: { ideal: 720 } },
-          audio: false,
-        })
-        if (cancelled) {
-          stream.getTracks().forEach((track) => track.stop())
-          return
-        }
-        streamRef.current = stream
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream
-        }
-      } catch (err) {
-        setError(err.message ?? 'Could not access camera')
+      if (closeCameraAfter) {
+        setOpen(false)
       }
-    }
+    },
+    [closeOrientPreview]
+  )
 
-    startCamera()
-
-    return () => {
-      cancelled = true
-      document.body.style.overflow = previousOverflow
-      streamRef.current?.getTracks().forEach((track) => track.stop())
-      streamRef.current = null
-    }
-  }, [open, facingMode])
+  useEffect(() => () => closeOrientPreview(), [closeOrientPreview])
 
   function closeCamera() {
-    streamRef.current?.getTracks().forEach((track) => track.stop())
-    streamRef.current = null
     setOpen(false)
     setError(null)
   }
 
-  async function saveBlob(blob) {
-    setUploading(true)
-    setError(null)
-    try {
-      const url = await uploadOptionPhoto(pollId, optionId, blob)
-      onPhotoChange(optionId, url)
-      closeCamera()
-    } catch (err) {
-      setError(err.message ?? 'Upload failed')
-    } finally {
-      setUploading(false)
-    }
+  async function uploadPreparedBlob(blob) {
+    const url = await uploadOptionPhoto(pollId, optionId, blob)
+    onPhotoChange(optionId, url)
+    closeOrientPreview()
+    closeCamera()
   }
 
-  async function captureFromCamera() {
-    const video = videoRef.current
-    if (!video) return
-
-    const canvas = document.createElement('canvas')
-    canvas.width = video.videoWidth
-    canvas.height = video.videoHeight
-    canvas.getContext('2d').drawImage(video, 0, 0)
-
-    const blob = await new Promise((resolve) =>
-      canvas.toBlob(resolve, 'image/jpeg', 0.88)
-    )
-    if (blob) await saveBlob(blob)
+  function handleCameraCapture(blob) {
+    openOrientPreview(blob, { closeCameraAfter: true })
   }
 
   async function handleFileChange(event) {
     const file = event.target.files?.[0]
     event.target.value = ''
     if (!file) return
-    await saveBlob(file)
+
+    try {
+      const blob = await prepareImageFile(file)
+      openOrientPreview(blob, { closeCameraAfter: true })
+    } catch (err) {
+      setError(err.message ?? 'Upload failed')
+    }
+  }
+
+  function rotatePreview(delta) {
+    setOrientPreview((current) =>
+      current
+        ? { ...current, rotation: (current.rotation + delta + 360) % 360 }
+        : current
+    )
+  }
+
+  async function confirmOrientPreview() {
+    if (!orientPreview) return
+
+    setUploading(true)
+    setError(null)
+    try {
+      const blob =
+        orientPreview.rotation === 0
+          ? orientPreview.blob
+          : await prepareImageBlob(orientPreview.blob, orientPreview.rotation)
+      await uploadPreparedBlob(blob)
+    } catch (err) {
+      setError(err.message ?? 'Could not save photo')
+    } finally {
+      setUploading(false)
+    }
   }
 
   async function handleRemove(event) {
@@ -114,79 +113,27 @@ export default function OptionPhotoCapture({
     }
   }
 
-  const modal = open
-    ? createPortal(
-        <div className="option-photo-modal-backdrop option-photo-modal-fullscreen">
-          <div className="option-photo-modal option-photo-modal-panel">
-            <div className="option-photo-modal-header">
-              <h3 className="option-photo-modal-title">{optionLabel}</h3>
-              <button
-                type="button"
-                className="option-photo-modal-close"
-                onClick={closeCamera}
-                disabled={uploading}
-                aria-label="Close camera"
-              >
-                ×
-              </button>
-            </div>
+  const camera = (
+    <GuestPhotoCamera
+      open={open && !orientPreview}
+      onClose={closeCamera}
+      onCapture={handleCameraCapture}
+      onOpenDeviceCamera={() => fileRef.current?.click()}
+      uploading={uploading}
+    />
+  )
 
-            <div className="option-photo-modal-body">
-              {error ? (
-                <p className="poll-message poll-message-error">{error}</p>
-              ) : (
-                <video
-                  ref={videoRef}
-                  className="option-photo-video"
-                  autoPlay
-                  playsInline
-                  muted
-                />
-              )}
-            </div>
-
-            <div className="option-photo-modal-actions">
-              <button
-                type="button"
-                className="poll-button poll-button-secondary poll-button-small"
-                onClick={() =>
-                  setFacingMode((mode) =>
-                    mode === 'environment' ? 'user' : 'environment'
-                  )
-                }
-              >
-                Flip camera
-              </button>
-              <button
-                type="button"
-                className="poll-button poll-button-secondary poll-button-small"
-                onClick={() => fileRef.current?.click()}
-                disabled={uploading}
-              >
-                Upload file
-              </button>
-              <button
-                type="button"
-                className="poll-button poll-button-primary"
-                onClick={captureFromCamera}
-                disabled={uploading || !!error}
-              >
-                {uploading ? 'Saving…' : 'Capture'}
-              </button>
-              <button
-                type="button"
-                className="poll-button poll-button-secondary"
-                onClick={closeCamera}
-                disabled={uploading}
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>,
-        document.body
-      )
-    : null
+  const orient = (
+    <GuestPhotoOrient
+      preview={orientPreview}
+      onClose={closeOrientPreview}
+      onRotateLeft={() => rotatePreview(-90)}
+      onRotateRight={() => rotatePreview(90)}
+      onConfirm={confirmOrientPreview}
+      uploading={uploading}
+      error={error}
+    />
+  )
 
   if (tilePreview) {
     return (
@@ -231,7 +178,11 @@ export default function OptionPhotoCapture({
           className="option-photo-file-input"
           onChange={handleFileChange}
         />
-        {modal}
+        {error && !orientPreview && (
+          <p className="poll-message poll-message-error">{error}</p>
+        )}
+        {camera}
+        {orient}
       </div>
     )
   }
@@ -275,7 +226,9 @@ export default function OptionPhotoCapture({
         className="option-photo-file-input"
         onChange={handleFileChange}
       />
-      {modal}
+      {error && !orientPreview && <p className="poll-message poll-message-error">{error}</p>}
+      {camera}
+      {orient}
     </div>
   )
 }

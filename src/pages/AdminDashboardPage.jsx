@@ -72,6 +72,9 @@ export default function AdminDashboardPage() {
       </div>
 
       <div className="admin-actions">
+        <Link to="/admin/photos" className="poll-button poll-button-secondary">
+          Photo album
+        </Link>
         <button
           type="button"
           className="poll-button poll-button-primary"

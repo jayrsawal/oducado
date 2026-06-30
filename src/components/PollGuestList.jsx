@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import PollRosterBoard from './PollRosterBoard'
 import { usePollRoster } from '../hooks/usePollRoster'
 import { buildRosterDisplayGroups } from '../lib/roster'
@@ -131,6 +131,10 @@ export default function PollGuestList({ poll, showEyebrow = false }) {
           )}
         </div>
       </div>
+
+      <p className="poll-page-footer-link">
+        <Link to="/photos">Share your reunion photos →</Link>
+      </p>
     </div>
   )
 }
