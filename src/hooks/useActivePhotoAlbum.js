@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useId, useState } from 'react'
 import { supabase } from '../lib/supabase'
 
 export function useActivePhotoAlbum({ includeClosed = true } = {}) {
+  const channelInstanceId = useId().replace(/:/g, '')
   const [album, setAlbum] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -55,7 +56,7 @@ export function useActivePhotoAlbum({ includeClosed = true } = {}) {
     load()
 
     const channel = supabase
-      .channel('active-photo-album-changes')
+      .channel(`active-photo-album-changes-${channelInstanceId}`)
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'photo_albums' },
@@ -66,7 +67,7 @@ export function useActivePhotoAlbum({ includeClosed = true } = {}) {
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [includeClosed])
+  }, [channelInstanceId, includeClosed])
 
   return { album, loading, error }
 }

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import useBodyScrollLock from '../hooks/useBodyScrollLock'
+import LazyPhoto from './LazyPhoto'
 import PhotoWatermark from './PhotoWatermark'
 
 const STORY_SLIDE_MS = 5000

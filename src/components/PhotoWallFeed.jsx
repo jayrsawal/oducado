@@ -6,7 +6,7 @@ import PhotoFeedPost from './PhotoFeedPost'
 import PhotoFeedStories from './PhotoFeedStories'
 import PhotoStoryViewer from './PhotoStoryViewer'
 import PhotoLightbox from './PhotoWallExtras'
-import { buildTableStories } from '../lib/photoStoryGroups'
+import { buildFeedStories } from '../lib/photoStoryGroups'
 
 export function PhotoWallFeed({
   albumId,
@@ -15,6 +15,8 @@ export function PhotoWallFeed({
   onDeletePhoto,
   deleting = false,
   onRegisterRefreshExtra,
+  onEditAssignment,
+  canEditAssignment,
 }) {
   const [lightboxPhoto, setLightboxPhoto] = useState(null)
   const [storyView, setStoryView] = useState(null)
@@ -27,7 +29,7 @@ export function PhotoWallFeed({
     [photos]
   )
 
-  const tableStories = useMemo(() => buildTableStories(photos), [photos])
+  const feedStories = useMemo(() => buildFeedStories(photos), [photos])
 
   const registerRefreshExtra = useCallback(async () => {
     await reloadSocial()
@@ -46,6 +48,14 @@ export function PhotoWallFeed({
     [onDeletePhoto]
   )
 
+  const handleEditAssignment = useCallback(
+    (photo) => {
+      setLightboxPhoto(null)
+      onEditAssignment?.(photo)
+    },
+    [onEditAssignment]
+  )
+
   return (
     <>
       {error && <p className="poll-message poll-message-error">{error}</p>}
@@ -53,9 +63,9 @@ export function PhotoWallFeed({
         <p className="poll-hint">Loading feed…</p>
       )}
 
-      {tableStories.length > 0 && (
+      {feedStories.length > 0 && (
         <PhotoFeedStories
-          stories={tableStories}
+          stories={feedStories}
           onSelectStory={(storyIndex) => setStoryView({ storyIndex, photoIndex: 0 })}
         />
       )}
@@ -74,6 +84,8 @@ export function PhotoWallFeed({
               onPostComment={postComment}
               onImageClick={setLightboxPhoto}
               onDelete={handleDeletePhoto}
+              onEditAssignment={handleEditAssignment}
+              canEditAssignment={canEditAssignment?.(photo) ?? false}
               canDelete={isMyPhoto(photo, deviceId)}
               busy={loading}
               deleting={deleting}
@@ -88,12 +100,14 @@ export function PhotoWallFeed({
         onPhotoChange={setLightboxPhoto}
         onClose={() => setLightboxPhoto(null)}
         onDelete={handleDeletePhoto}
+        onEditAssignment={handleEditAssignment}
+        canEditAssignment={lightboxPhoto ? (canEditAssignment?.(lightboxPhoto) ?? false) : false}
         canDelete={lightboxPhoto ? isMyPhoto(lightboxPhoto, deviceId) : false}
         deleting={deleting}
       />
       {storyView && (
         <PhotoStoryViewer
-          stories={tableStories}
+          stories={feedStories}
           storyIndex={storyView.storyIndex}
           photoIndex={storyView.photoIndex}
           onChange={(storyIndex, photoIndex) => setStoryView({ storyIndex, photoIndex })}

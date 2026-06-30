@@ -2,7 +2,6 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { getDeviceId } from '../lib/deviceId'
 import FeedDisplayNamePrompt from './FeedDisplayNamePrompt'
 import GuestPhotoUploader from './GuestPhotoUploader'
-import { useAlbumRoster } from '../hooks/useAlbumRoster'
 import { useFeedDisplayName } from '../hooks/useFeedDisplayName'
 import { useFeedNav } from '../contexts/FeedNavContext'
 import { MAX_DEVICE_PHOTOS } from '../lib/guestPhoto'
@@ -15,32 +14,20 @@ export default function PhotoWallUpload({
   onRegisterRefreshExtra,
   navActive = true,
   showBulkUpload = true,
+  tableAssignOptions = [],
+  pollAssign = null,
+  rosterTableIds = [],
 }) {
   const deviceId = getDeviceId()
   const [refreshing, setRefreshing] = useState(false)
   const [shareActions, setShareActions] = useState(null)
   const { setFeedNav, clearFeedNav } = useFeedNav()
   const { displayName, needsPrompt, setDisplayName } = useFeedDisplayName()
-  const { roster, tables } = useAlbumRoster(albumId)
 
   const myDevicePhotos = useMemo(
     () => photos.filter((photo) => photo.device_id === deviceId),
     [photos, deviceId]
   )
-
-  const tableAssignOptions = useMemo(
-    () => tables.map((table) => ({ tableId: table.id, tableName: table.name })),
-    [tables]
-  )
-
-  const rosterTableIds = useMemo(() => {
-    const name = displayName?.trim().toLowerCase()
-    if (!name) return []
-
-    return roster
-      .filter((entry) => entry.table_id && entry.display_name.trim().toLowerCase() === name)
-      .map((entry) => entry.table_id)
-  }, [displayName, roster])
 
   const galleryPreviewUrl = myDevicePhotos[0]?.public_url ?? null
   const uploadsOpen = album?.status === 'open'
@@ -123,6 +110,7 @@ export default function PhotoWallUpload({
           singleGalleryPick
           orientGalleryPicks
           tableAssignOptions={tableAssignOptions}
+          pollAssign={pollAssign}
           rosterTableIds={rosterTableIds}
           onExposeActions={handleExposeActions}
           galleryPreviewUrl={galleryPreviewUrl}

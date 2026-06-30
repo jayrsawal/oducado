@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import useBodyScrollLock from '../hooks/useBodyScrollLock'
 import { isMyPhoto } from '../lib/photoOwnership'
+import LazyPhoto from './LazyPhoto'
 import PhotoLightbox, { PhotoWallUploadCtaSlide } from './PhotoWallExtras'
 import PhotoWatermark from './PhotoWatermark'
 
@@ -145,7 +146,15 @@ export default function PhotoWallCarousel({
                 <PhotoWallUploadCtaSlide uploadsOpen={uploadsOpen} fullscreen={isFullscreen} />
               ) : (
                 <div className="photo-wall-carousel-image-wrap">
-                  <img src={slide.public_url} alt="" className="photo-wall-carousel-image" />
+                  {(slideIndex === index ||
+                    slideIndex === (index + 1) % slides.length ||
+                    slideIndex === (index - 1 + slides.length) % slides.length) && (
+                    <LazyPhoto
+                      src={slide.public_url}
+                      className="photo-wall-carousel-image"
+                      loading={slideIndex === index ? 'eager' : 'lazy'}
+                    />
+                  )}
                   <PhotoWatermark
                     displayName={slide.display_name}
                     tableName={slide.table_name}
@@ -198,7 +207,14 @@ export default function PhotoWallCarousel({
   return carousel
 }
 
-export function PhotoWallGallery({ photos, deviceId, onDeletePhoto, deleting = false }) {
+export function PhotoWallGallery({
+  photos,
+  deviceId,
+  onDeletePhoto,
+  deleting = false,
+  onEditAssignment,
+  canEditAssignment,
+}) {
   const [lightboxPhoto, setLightboxPhoto] = useState(null)
   const [filter, setFilter] = useState('all')
 
@@ -220,6 +236,11 @@ export function PhotoWallGallery({ photos, deviceId, onDeletePhoto, deleting = f
   async function handleDeletePhoto(photo) {
     await onDeletePhoto?.(photo)
     setLightboxPhoto((current) => (current?.id === photo.id ? null : current))
+  }
+
+  function handleEditAssignment(photo) {
+    setLightboxPhoto(null)
+    onEditAssignment?.(photo)
   }
 
   if (ordered.length === 0) {
@@ -265,7 +286,7 @@ export function PhotoWallGallery({ photos, deviceId, onDeletePhoto, deleting = f
                 onClick={() => setLightboxPhoto(photo)}
                 aria-label={`View photo${photo.display_name ? ` from ${photo.display_name}` : ''}`}
               >
-                <img src={photo.public_url} alt="" className="photo-event-grid-image" />
+                <LazyPhoto src={photo.public_url} alt="" className="photo-event-grid-image" />
               </button>
             </div>
           ))}
@@ -277,6 +298,8 @@ export function PhotoWallGallery({ photos, deviceId, onDeletePhoto, deleting = f
         onPhotoChange={setLightboxPhoto}
         onClose={() => setLightboxPhoto(null)}
         onDelete={handleDeletePhoto}
+        onEditAssignment={handleEditAssignment}
+        canEditAssignment={lightboxPhoto ? (canEditAssignment?.(lightboxPhoto) ?? false) : false}
         canDelete={lightboxPhoto ? isMyPhoto(lightboxPhoto, deviceId) : false}
         deleting={deleting}
       />

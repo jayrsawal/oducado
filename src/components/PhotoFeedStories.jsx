@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react'
+import LazyPhoto from './LazyPhoto'
 
 const DRAG_THRESHOLD_PX = 4
 
@@ -99,7 +100,7 @@ export default function PhotoFeedStories({ stories, onSelectStory }) {
           >
             <span className="photo-feed-stories-ring">
               <span className="photo-feed-stories-thumb">
-                <img src={story.coverPhoto.public_url} alt="" draggable={false} />
+                <LazyPhoto src={story.coverPhoto.public_url} alt="" draggable={false} />
               </span>
             </span>
             <span className="photo-feed-stories-label">{story.name}</span>

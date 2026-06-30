@@ -12,7 +12,12 @@ export function useAlbumPhotos(albumId) {
 
     const { data, error: fetchError } = await supabase
       .from('album_guest_photos')
-      .select('id, album_id, table_id, display_name, device_id, public_url, created_at, is_open_upload, photo_tables(name)')
+      .select(
+        `id, album_id, table_id, poll_id, poll_option_id, display_name, device_id, public_url, created_at, is_open_upload,
+        photo_tables(name),
+        polls(title),
+        poll_options(label, poll_categories(name))`
+      )
       .eq('album_id', albumId)
       .order('created_at', { ascending: false })
 
@@ -21,6 +26,9 @@ export function useAlbumPhotos(albumId) {
     const rows = (data ?? []).map((row) => ({
       ...row,
       table_name: row.photo_tables?.name ?? null,
+      poll_title: row.polls?.title ?? null,
+      poll_option_label: row.poll_options?.label ?? null,
+      poll_category_name: row.poll_options?.poll_categories?.name ?? null,
     }))
     setPhotos(rows)
     return rows

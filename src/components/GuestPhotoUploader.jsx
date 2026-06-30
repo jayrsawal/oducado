@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import GuestPhotoCamera from './GuestPhotoCamera'
 import GuestPhotoOrient from './GuestPhotoOrient'
-import PhotoTableAssignPrompt from './PhotoTableAssignPrompt'
+import PhotoStoryAssignPrompt from './PhotoStoryAssignPrompt'
 import PhotoLightbox from './PhotoWallExtras'
 import {
   deleteGuestPhoto,
@@ -28,6 +28,7 @@ export default function GuestPhotoUploader({
   singleGalleryPick = false,
   orientGalleryPicks = false,
   tableAssignOptions = [],
+  pollAssign = null,
   rosterTableIds = [],
   onExposeActions,
   galleryPreviewUrl = null,
@@ -152,7 +153,10 @@ export default function GuestPhotoUploader({
     setCameraError(null)
   }
 
-  async function uploadPreparedBlob(blob, assignTableId = null) {
+  async function uploadPreparedBlob(
+    blob,
+    { tableId = null, pollId = null, pollOptionId = null } = {}
+  ) {
     if (mode === 'open') {
       const name = displayName?.trim()
       if (!name) throw new Error('Your name is required before uploading')
@@ -162,7 +166,9 @@ export default function GuestPhotoUploader({
         deviceId,
         displayName: name,
         blob,
-        tableId: assignTableId,
+        tableId,
+        pollId,
+        pollOptionId,
       })
       return
     }
@@ -176,14 +182,14 @@ export default function GuestPhotoUploader({
     })
   }
 
-  async function saveBlob(blob, assignTableId = null) {
+  async function saveBlob(blob, assignment = {}) {
     if (!canUpload && !pendingUpload) return
 
     setUploading(true)
     setPageError(null)
     setCameraError(null)
     try {
-      await uploadPreparedBlob(blob, assignTableId)
+      await uploadPreparedBlob(blob, assignment)
       await onPhotosChange()
     } catch (err) {
       const message = err.message ?? 'Upload failed'
@@ -328,7 +334,10 @@ export default function GuestPhotoUploader({
           ? orientPreview.blob
           : await prepareImageBlob(orientPreview.blob, orientPreview.rotation)
 
-      if (mode === 'open' && tableAssignOptions.length > 0) {
+      if (
+        mode === 'open' &&
+        (tableAssignOptions.length > 0 || (pollAssign?.options?.length ?? 0) > 0)
+      ) {
         closeOrientPreview()
         setPendingUpload({
           blob,
@@ -348,13 +357,13 @@ export default function GuestPhotoUploader({
     }
   }
 
-  async function handleTableAssign(assignTableId) {
+  async function handleStoryAssign(assignment) {
     if (!pendingUpload) return
 
     setUploading(true)
     setPageError(null)
     try {
-      await uploadPreparedBlob(pendingUpload.blob, assignTableId)
+      await uploadPreparedBlob(pendingUpload.blob, assignment)
       await onPhotosChange()
       clearPendingUpload()
     } catch (err) {
@@ -407,12 +416,14 @@ export default function GuestPhotoUploader({
     />
   )
 
-  const tableAssignModal = pendingUpload && (
-    <PhotoTableAssignPrompt
+  const storyAssignModal = pendingUpload && (
+    <PhotoStoryAssignPrompt
       previewUrl={pendingUpload.url}
       tables={tableAssignOptions}
       rosterTableIds={rosterTableIds}
-      onAssign={handleTableAssign}
+      poll={pollAssign?.poll ?? null}
+      pollOptions={pollAssign?.options ?? []}
+      onAssign={handleStoryAssign}
       onClose={clearPendingUpload}
       uploading={uploading}
       error={pageError}
@@ -556,7 +567,7 @@ export default function GuestPhotoUploader({
         galleryPreviewUrl={galleryPreviewUrl}
       />
       {orientModal}
-      {tableAssignModal}
+      {storyAssignModal}
       {!headless && (
         <PhotoLightbox
           photo={lightboxPhoto}

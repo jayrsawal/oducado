@@ -1,4 +1,6 @@
-import { useRef, useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
+
+import LazyPhoto from './LazyPhoto'
 
 function formatRelativeTime(value) {
   const date = new Date(value)
@@ -31,6 +33,8 @@ export default function PhotoFeedPost({
   onPostComment,
   onImageClick,
   onDelete,
+  onEditAssignment,
+  canEditAssignment = false,
   canDelete = false,
   busy = false,
   deleting = false,
@@ -38,18 +42,28 @@ export default function PhotoFeedPost({
   const [commentBody, setCommentBody] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [localError, setLocalError] = useState(null)
+  const [menuOpen, setMenuOpen] = useState(false)
   const commentInputRef = useRef(null)
+  const menuRef = useRef(null)
+  const menuButtonId = useId()
+  const menuId = useId()
 
   const likeCount = social?.likeCount ?? 0
   const likedByMe = social?.likedByMe ?? false
   const comments = social?.comments ?? []
 
   const displayName = photo.display_name?.trim() || 'Guest'
-  const subtitle = photo.is_open_upload
-    ? photo.table_id
-      ? photo.table_name ?? 'Table'
-      : 'Shared Moment'
-    : photo.table_name ?? 'Family reunion'
+  const subtitle = photo.poll_option_label
+    ? photo.poll_category_name
+      ? `${photo.poll_option_label} · ${photo.poll_category_name}`
+      : photo.poll_option_label
+    : photo.poll_id && photo.poll_title
+      ? photo.poll_title
+      : photo.is_open_upload
+        ? photo.table_id
+          ? photo.table_name ?? 'Table'
+          : 'Shared Moment'
+        : photo.table_name ?? 'Family reunion'
 
   async function handleLike() {
     if (busy || !userDisplayName) return
@@ -90,6 +104,38 @@ export default function PhotoFeedPost({
     }
   }
 
+  function handleEditAssignment() {
+    if (!canEditAssignment || !onEditAssignment || deleting) return
+    onEditAssignment(photo)
+  }
+
+  useEffect(() => {
+    if (!menuOpen) return undefined
+
+    function handlePointerDown(event) {
+      if (menuRef.current?.contains(event.target)) return
+      setMenuOpen(false)
+    }
+
+    function handleKeyDown(event) {
+      if (event.key === 'Escape') setMenuOpen(false)
+    }
+
+    document.addEventListener('pointerdown', handlePointerDown)
+    document.addEventListener('keydown', handleKeyDown)
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown)
+      document.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [menuOpen])
+
+  async function handleDeleteFromMenu() {
+    setMenuOpen(false)
+    await handleDelete()
+  }
+
+  const showPostMenu = canDelete && onDelete
+
   return (
     <article className="photo-feed-post">
       <header className="photo-feed-post-header">
@@ -98,8 +144,59 @@ export default function PhotoFeedPost({
         </div>
         <div className="photo-feed-post-meta">
           <p className="photo-feed-post-author">{displayName}</p>
-          <p className="photo-feed-post-subtitle">{subtitle}</p>
+          {canEditAssignment && onEditAssignment ? (
+            <button
+              type="button"
+              className="photo-feed-post-subtitle-edit"
+              onClick={handleEditAssignment}
+              disabled={busy || deleting}
+              aria-label={`Change story: ${subtitle}`}
+            >
+              <span className="photo-feed-post-subtitle">{subtitle}</span>
+            </button>
+          ) : (
+            <p className="photo-feed-post-subtitle">{subtitle}</p>
+          )}
         </div>
+        {showPostMenu && (
+          <div className="photo-feed-post-menu" ref={menuRef}>
+            <button
+              type="button"
+              id={menuButtonId}
+              className="photo-feed-post-menu-btn"
+              onClick={() => setMenuOpen((open) => !open)}
+              disabled={busy || deleting}
+              aria-label="Post options"
+              aria-haspopup="menu"
+              aria-expanded={menuOpen}
+              aria-controls={menuId}
+            >
+              <svg className="photo-feed-post-menu-icon" viewBox="0 0 24 24" aria-hidden="true">
+                <circle cx="5" cy="12" r="2" fill="currentColor" />
+                <circle cx="12" cy="12" r="2" fill="currentColor" />
+                <circle cx="19" cy="12" r="2" fill="currentColor" />
+              </svg>
+            </button>
+            {menuOpen && (
+              <div
+                id={menuId}
+                className="photo-feed-post-menu-dropdown"
+                role="menu"
+                aria-labelledby={menuButtonId}
+              >
+                <button
+                  type="button"
+                  className="photo-feed-post-menu-item photo-feed-post-menu-item-danger"
+                  role="menuitem"
+                  onClick={handleDeleteFromMenu}
+                  disabled={busy || deleting}
+                >
+                  {deleting ? 'Removing…' : 'Remove photo'}
+                </button>
+              </div>
+            )}
+          </div>
+        )}
       </header>
 
       <div className="photo-feed-post-media">
@@ -109,7 +206,7 @@ export default function PhotoFeedPost({
           onClick={() => onImageClick?.(photo)}
           aria-label={`View photo from ${displayName}`}
         >
-          <img src={photo.public_url} alt="" className="photo-feed-post-image" />
+          <LazyPhoto src={photo.public_url} alt="" className="photo-feed-post-image" />
         </button>
       </div>
 
@@ -142,19 +239,6 @@ export default function PhotoFeedPost({
               <path d="M20 2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h14l4 4V4c0-1.1-.9-2-2-2zm0 15.17L18.83 16H4V4h16v13.17z" />
             </svg>
           </button>
-          {canDelete && onDelete && (
-            <button
-              type="button"
-              className="photo-feed-action-btn photo-feed-delete-btn"
-              onClick={handleDelete}
-              disabled={busy || deleting}
-              aria-label="Remove your photo"
-            >
-              <svg className="photo-feed-icon" viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z" />
-              </svg>
-            </button>
-          )}
         </div>
       </div>
 

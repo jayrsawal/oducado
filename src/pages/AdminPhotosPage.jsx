@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import AdminPhotoModeration from '../components/AdminPhotoModeration'
 import AdminPhotoQRCodes from '../components/AdminPhotoQRCodes'
 import AlbumRosterEditor from '../components/AlbumRosterEditor'
 import { useAlbumRoster } from '../hooks/useAlbumRoster'
 import { importPollRosterToAlbum } from '../lib/guestPhoto'
 import { supabase } from '../lib/supabase'
 
-const TABS = ['details', 'roster', 'qrcodes']
+const TABS = ['details', 'moderate', 'roster', 'qrcodes']
 
 export default function AdminPhotosPage() {
   const [album, setAlbum] = useState(null)
@@ -169,7 +170,11 @@ export default function AdminPhotosPage() {
             className={`poll-tab${tab === t ? ' poll-tab-active' : ''}`}
             onClick={() => setTab(t)}
           >
-            {t === 'qrcodes' ? 'QR codes' : t.charAt(0).toUpperCase() + t.slice(1)}
+            {t === 'qrcodes'
+              ? 'QR codes'
+              : t === 'moderate'
+                ? 'Moderate'
+                : t.charAt(0).toUpperCase() + t.slice(1)}
           </button>
         ))}
       </div>
@@ -268,6 +273,12 @@ export default function AdminPhotosPage() {
               Open photo feed →
             </a>
           </p>
+        </section>
+      )}
+
+      {tab === 'moderate' && (
+        <section className="poll-section">
+          <AdminPhotoModeration albumId={album.id} />
         </section>
       )}
 

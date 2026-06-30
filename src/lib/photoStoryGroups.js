@@ -18,6 +18,8 @@ export function buildTableStories(photos) {
   const groups = new Map()
 
   for (const photo of photos) {
+    if (photo.poll_id && !photo.table_id) continue
+
     const key = photo.is_open_upload
       ? photo.table_id
         ? photo.table_id
@@ -32,6 +34,7 @@ export function buildTableStories(photos) {
     if (!groups.has(key)) {
       groups.set(key, {
         id: key,
+        kind: 'table',
         tableId: photo.is_open_upload && !photo.table_id ? null : photo.table_id,
         name,
         photos: [],
@@ -41,6 +44,41 @@ export function buildTableStories(photos) {
     groups.get(key).photos.push(photo)
   }
 
+  return finalizeStoryGroups(groups)
+}
+
+export function buildPollStories(photos) {
+  const groups = new Map()
+
+  for (const photo of photos) {
+    if (!photo.poll_id) continue
+
+    const key = `poll:${photo.poll_id}`
+    const name = photo.poll_title ?? 'Poll'
+
+    if (!groups.has(key)) {
+      groups.set(key, {
+        id: key,
+        kind: 'poll',
+        pollId: photo.poll_id,
+        name,
+        photos: [],
+      })
+    }
+
+    groups.get(key).photos.push(photo)
+  }
+
+  return finalizeStoryGroups(groups)
+}
+
+export function buildFeedStories(photos) {
+  return [...buildPollStories(photos), ...buildTableStories(photos)].sort(
+    (a, b) => new Date(b.latestAt) - new Date(a.latestAt)
+  )
+}
+
+function finalizeStoryGroups(groups) {
   return [...groups.values()]
     .map((group) => {
       const ordered = [...group.photos].sort(

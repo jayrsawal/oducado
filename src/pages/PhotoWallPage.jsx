@@ -2,10 +2,14 @@ import { useCallback, useRef, useState } from 'react'
 import PhotoWallCarousel, { PhotoWallGallery } from '../components/PhotoWall'
 import { PhotoWallFeed } from '../components/PhotoWallFeed'
 import PhotoWallUpload from '../components/PhotoWallUpload'
+import PhotoStoryAssignPrompt from '../components/PhotoStoryAssignPrompt'
 import { useActivePhotoAlbum } from '../hooks/useActivePhotoAlbum'
 import { useAlbumPhotos } from '../hooks/useAlbumPhotos'
+import { useFeedDisplayName } from '../hooks/useFeedDisplayName'
+import { usePhotoStoryAssignOptions } from '../hooks/usePhotoStoryAssignOptions'
 import { getDeviceId } from '../lib/deviceId'
-import { deleteGuestPhoto } from '../lib/guestPhoto'
+import { deleteGuestPhoto, updatePhotoAssignment } from '../lib/guestPhoto'
+import { canEditPhotoAssignment } from '../lib/photoOwnership'
 
 export default function PhotoWallPage() {
   const { album, loading: albumLoading, error: albumError } = useActivePhotoAlbum({
@@ -16,8 +20,14 @@ export default function PhotoWallPage() {
   const [slideSeconds, setSlideSeconds] = useState(7)
   const [deleting, setDeleting] = useState(false)
   const [deleteError, setDeleteError] = useState(null)
+  const [assignEditPhoto, setAssignEditPhoto] = useState(null)
+  const [assignSaving, setAssignSaving] = useState(false)
+  const [assignError, setAssignError] = useState(null)
   const refreshExtraRef = useRef(null)
   const deviceId = getDeviceId()
+  const { displayName } = useFeedDisplayName()
+  const { tableAssignOptions, pollAssign, rosterTableIds, hasStoryTargets } =
+    usePhotoStoryAssignOptions(album?.id, displayName)
 
   const handleRegisterRefreshExtra = useCallback((handler) => {
     refreshExtraRef.current = handler
@@ -45,6 +55,48 @@ export default function PhotoWallPage() {
       }
     },
     [deviceId, reload, runRefreshExtra]
+  )
+
+  const canEditAssignment = useCallback(
+    (photo) => canEditPhotoAssignment(photo, deviceId, hasStoryTargets),
+    [deviceId, hasStoryTargets]
+  )
+
+  const handleEditAssignment = useCallback((photo) => {
+    setAssignError(null)
+    setAssignEditPhoto(photo)
+  }, [])
+
+  const handleCloseAssignment = useCallback(() => {
+    if (assignSaving) return
+    setAssignEditPhoto(null)
+    setAssignError(null)
+  }, [assignSaving])
+
+  const handleSaveAssignment = useCallback(
+    async (assignment) => {
+      if (!assignEditPhoto) return
+
+      setAssignSaving(true)
+      setAssignError(null)
+      try {
+        await updatePhotoAssignment({
+          photoId: assignEditPhoto.id,
+          deviceId,
+          tableId: assignment.tableId ?? null,
+          pollId: assignment.pollId ?? null,
+          pollOptionId: assignment.pollOptionId ?? null,
+        })
+        await reload()
+        await runRefreshExtra()
+        setAssignEditPhoto(null)
+      } catch (err) {
+        setAssignError(err.message ?? 'Could not update assignment')
+      } finally {
+        setAssignSaving(false)
+      }
+    },
+    [assignEditPhoto, deviceId, reload, runRefreshExtra]
   )
 
   if (albumLoading || photosLoading) {
@@ -88,6 +140,9 @@ export default function PhotoWallPage() {
         onRefresh={reload}
         onRegisterRefreshExtra={runRefreshExtra}
         navActive={navActive}
+        tableAssignOptions={tableAssignOptions}
+        pollAssign={pollAssign}
+        rosterTableIds={rosterTableIds}
       />
 
       <div className="photo-wall-mode-toggle" role="tablist" aria-label="Photo wall view">
@@ -154,6 +209,8 @@ export default function PhotoWallPage() {
           deviceId={deviceId}
           onDeletePhoto={handleDeletePhoto}
           deleting={deleting}
+          onEditAssignment={handleEditAssignment}
+          canEditAssignment={canEditAssignment}
         />
       ) : (
         <PhotoWallFeed
@@ -163,6 +220,24 @@ export default function PhotoWallPage() {
           onDeletePhoto={handleDeletePhoto}
           deleting={deleting}
           onRegisterRefreshExtra={handleRegisterRefreshExtra}
+          onEditAssignment={handleEditAssignment}
+          canEditAssignment={canEditAssignment}
+        />
+      )}
+
+      {assignEditPhoto && (
+        <PhotoStoryAssignPrompt
+          mode="edit"
+          previewUrl={assignEditPhoto.public_url}
+          tables={tableAssignOptions}
+          rosterTableIds={rosterTableIds}
+          poll={pollAssign?.poll ?? null}
+          pollOptions={pollAssign?.options ?? []}
+          currentPhoto={assignEditPhoto}
+          onAssign={handleSaveAssignment}
+          onClose={handleCloseAssignment}
+          uploading={assignSaving}
+          error={assignError}
         />
       )}
     </div>

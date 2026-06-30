@@ -65,6 +65,8 @@ export default function PhotoLightbox({
   onClose,
   onRotate,
   onDelete,
+  onEditAssignment,
+  canEditAssignment = false,
   canDelete = false,
   deleting = false,
 }) {
@@ -184,8 +186,25 @@ export default function PhotoLightbox({
             createdAt={photo.created_at}
             size="large"
           />
-          {(onRotate || (canDelete && onDelete)) && (
+          {(onRotate || onEditAssignment || (canDelete && onDelete)) && (
             <div className="photo-lightbox-actions">
+              {onEditAssignment && canEditAssignment && (
+                <button
+                  type="button"
+                  className="photo-lightbox-action-btn"
+                  onClick={() => onEditAssignment(photo)}
+                  disabled={deleting}
+                  aria-label="Change story assignment"
+                  title="Change story"
+                >
+                  <svg viewBox="0 0 24 24" aria-hidden="true" className="photo-lightbox-action-icon">
+                    <path
+                      fill="currentColor"
+                      d="M17.63 5.84C17.27 5.33 16.67 5 16 5L5 5.01C3.9 5.01 3 5.9 3 7v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-.37-.1-.72-.26-1.03L17.63 5.84zM16 19H6V7h7.5l2.5 3.01V19zM7.5 13.5c0-.83.67-1.5 1.5-1.5s1.5.67 1.5 1.5S9.83 15 9 15s-1.5-.67-1.5-1.5zM12 9l-1.5-2h-5V5h11v2.01L12 9z"
+                    />
+                  </svg>
+                </button>
+              )}
               {onRotate && (
                 <button
                   type="button"

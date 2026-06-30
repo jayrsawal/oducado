@@ -45,6 +45,8 @@ Migrations live in `supabase/migrations/` and must be run in order:
 | `016_album_upload_limits_and_open_names.sql` | Admin upload limits and named quick shares |
 | `017_open_photo_table_tag.sql` | Optional table tag on quick shares for story rings |
 | `018_combined_device_upload_limit.sql` | Single per-device upload limit for all photo types |
+| `019_album_photo_poll_options.sql` | Tag quick shares to poll options; latest photo becomes option image |
+| `020_update_album_photo_assignment.sql` | Let guests change table/poll story assignment after upload |
 
 **Option A — Supabase CLI (recommended)**
 
@@ -223,7 +225,7 @@ The Vite + React app connects to Supabase for polls and admin management.
 | `/photos/wall` | Everyone | Photo feed — share, browse, gallery, carousel, and table stories |
 | `/admin/login` | Organizers | Sign in |
 | `/admin` | Admins | Poll dashboard |
-| `/admin/photos` | Admins | Photo album — roster, QR codes, upload status |
+| `/admin/photos` | Admins | Photo album — moderate, roster, QR codes, upload status |
 | `/admin/polls/:id` | Admins | Edit poll, categories, results, proxy votes |
 
 The landing page (`/`) shows a QR code for **`/polls`** so guests can scan straight to the voting guest list.
@@ -235,10 +237,12 @@ The **photo album** is its own feature at **`/admin/photos`** — not tied to a 
 1. **Admin → Photo album** — set up tables and guests on the roster (used for table story rings and optional tagging when guests share photos)
 2. **Open photo uploads** on the Details tab when you are ready
 3. **QR codes** tab — print one code for the reunion (points to **`/photos/wall`**)
-4. Guests scan → open the feed → enter their name → share photos and optionally tag a table
+4. Guests scan → open the feed → enter their name → share photos and optionally tag a table or poll option
 5. Everyone browses **`/photos/wall`** (feed, gallery, or carousel) from the landing page, guest list, or QR code
 
-Run migrations **`011`** through **`018`** (see [Database setup](#database-setup)). If you already ran `010`, `011` replaces the poll-tied tables.
+When assigning a photo after orient, guests can pick a **poll story** and search for an option. The most recent photo assigned to each option becomes that option's image on the ballot.
+
+Run migrations **`011`** through **`020`** (see [Database setup](#database-setup)). If you already ran `010`, `011` replaces the poll-tied tables.
 
 ### Install and run
 

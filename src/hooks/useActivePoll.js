@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useId, useState } from 'react'
 import { supabase } from '../lib/supabase'
 
 export function useActivePoll({ includeClosed = false } = {}) {
+  const channelInstanceId = useId().replace(/:/g, '')
   const [poll, setPoll] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -55,7 +56,7 @@ export function useActivePoll({ includeClosed = false } = {}) {
     load()
 
     const channel = supabase
-      .channel('active-poll-changes')
+      .channel(`active-poll-changes-${channelInstanceId}`)
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'polls' },
@@ -66,7 +67,7 @@ export function useActivePoll({ includeClosed = false } = {}) {
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [includeClosed])
+  }, [channelInstanceId, includeClosed])
 
   return { poll, loading, error }
 }

@@ -58,7 +58,15 @@ export async function uploadGuestPhoto({
   }
 }
 
-export async function uploadOpenPhoto({ albumId, deviceId, displayName, blob, tableId = null }) {
+export async function uploadOpenPhoto({
+  albumId,
+  deviceId,
+  displayName,
+  blob,
+  tableId = null,
+  pollId = null,
+  pollOptionId = null,
+}) {
   const photoId = crypto.randomUUID()
   const path = `${albumId}/${photoId}.jpg`
 
@@ -80,6 +88,8 @@ export async function uploadOpenPhoto({ albumId, deviceId, displayName, blob, ta
     p_storage_path: path,
     p_public_url: publicUrl,
     p_table_id: tableId,
+    p_poll_id: pollId,
+    p_poll_option_id: pollOptionId,
   })
 
   if (submitError) {
@@ -91,6 +101,8 @@ export async function uploadOpenPhoto({ albumId, deviceId, displayName, blob, ta
     id: photoIdRow,
     album_id: albumId,
     table_id: tableId,
+    poll_id: pollId,
+    poll_option_id: pollOptionId,
     display_name: displayName.trim(),
     device_id: deviceId,
     storage_path: path,
@@ -112,6 +124,25 @@ export async function deleteGuestPhoto(photoId, deviceId) {
   const { error: rpcError } = await supabase.rpc('delete_album_guest_photo', {
     p_photo_id: photoId,
     p_device_id: deviceId,
+  })
+
+  if (rpcError) throw rpcError
+
+  await supabase.storage.from(BUCKET).remove([photo.storage_path])
+}
+
+export async function deleteAlbumPhotoAdmin(photoId) {
+  const { data: photo, error: fetchError } = await supabase
+    .from('album_guest_photos')
+    .select('storage_path, device_id')
+    .eq('id', photoId)
+    .single()
+
+  if (fetchError) throw fetchError
+
+  const { error: rpcError } = await supabase.rpc('delete_album_guest_photo', {
+    p_photo_id: photoId,
+    p_device_id: photo.device_id,
   })
 
   if (rpcError) throw rpcError
@@ -164,4 +195,22 @@ export async function importPollRosterToAlbum(albumId, pollId) {
 
   if (error) throw error
   return data
+}
+
+export async function updatePhotoAssignment({
+  photoId,
+  deviceId,
+  tableId = null,
+  pollId = null,
+  pollOptionId = null,
+}) {
+  const { error } = await supabase.rpc('update_album_photo_assignment', {
+    p_photo_id: photoId,
+    p_device_id: deviceId,
+    p_table_id: tableId,
+    p_poll_id: pollId,
+    p_poll_option_id: pollOptionId,
+  })
+
+  if (error) throw error
 }
