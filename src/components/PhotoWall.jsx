@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import useBodyScrollLock from '../hooks/useBodyScrollLock'
 import { isMyPhoto } from '../lib/photoOwnership'
+import { AlbumMediaThumb } from './AlbumMedia'
 import LazyPhoto from './LazyPhoto'
 import PhotoLightbox, { PhotoWallUploadCtaSlide } from './PhotoWallExtras'
 import PhotoWatermark from './PhotoWatermark'
@@ -30,9 +31,9 @@ async function exitNodeFullscreen() {
 }
 
 function buildSlides(photos) {
-  const ordered = [...photos].sort(
-    (a, b) => new Date(b.created_at) - new Date(a.created_at)
-  )
+  const ordered = [...photos]
+    .filter((photo) => photo.media_type !== 'video')
+    .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
   return [{ id: CTA_SLIDE_ID, type: 'cta' }, ...ordered]
 }
 
@@ -286,7 +287,7 @@ export function PhotoWallGallery({
                 onClick={() => setLightboxPhoto(photo)}
                 aria-label={`View photo${photo.display_name ? ` from ${photo.display_name}` : ''}`}
               >
-                <LazyPhoto src={photo.public_url} alt="" className="photo-event-grid-image" />
+                <AlbumMediaThumb item={photo} thumbClassName="photo-event-grid-image" alt="" />
               </button>
             </div>
           ))}

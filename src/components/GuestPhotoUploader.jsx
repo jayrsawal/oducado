@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import GuestPhotoCamera from './GuestPhotoCamera'
 import GuestPhotoOrient from './GuestPhotoOrient'
 import PhotoStoryAssignPrompt from './PhotoStoryAssignPrompt'
-import PhotoLightbox from './PhotoWallExtras'
+import { albumMediaPreviewUrl } from './AlbumMedia'
 import {
   deleteGuestPhoto,
   MAX_DEVICE_PHOTOS,
@@ -11,6 +11,7 @@ import {
   uploadOpenPhoto,
 } from '../lib/guestPhoto'
 import { prepareImageBlob, prepareImageFile, previewUrlForBlob } from '../lib/imagePrepare'
+import { isVideoFile, prepareVideoFile } from '../lib/videoPrepare'
 
 export default function GuestPhotoUploader({
   albumId,
@@ -153,8 +154,34 @@ export default function GuestPhotoUploader({
     setCameraError(null)
   }
 
-  async function uploadPreparedBlob(
-    blob,
+  async function prepareGalleryItem(file) {
+    if (isVideoFile(file)) {
+      return prepareVideoFile(file)
+    }
+    return {
+      mediaType: 'image',
+      blob: await prepareImageFile(file),
+      posterBlob: null,
+    }
+  }
+
+  function shouldPromptStoryAssign(item) {
+    if (mode !== 'open') return false
+    if (item.mediaType === 'video') return tableAssignOptions.length > 0
+    return (
+      tableAssignOptions.length > 0 || (pollAssign?.options?.length ?? 0) > 0
+    )
+  }
+
+  function previewUrlForItem(item) {
+    if (item.mediaType === 'video') {
+      return previewUrlForBlob(item.posterBlob)
+    }
+    return previewUrlForBlob(item.blob)
+  }
+
+  async function uploadPreparedItem(
+    item,
     { tableId = null, pollId = null, pollOptionId = null } = {}
   ) {
     if (mode === 'open') {
@@ -165,7 +192,9 @@ export default function GuestPhotoUploader({
         albumId,
         deviceId,
         displayName: name,
-        blob,
+        blob: item.blob,
+        mediaType: item.mediaType,
+        posterBlob: item.posterBlob,
         tableId,
         pollId,
         pollOptionId,
@@ -173,23 +202,27 @@ export default function GuestPhotoUploader({
       return
     }
 
+    if (item.mediaType === 'video') {
+      throw new Error('Videos can only be shared from the photo feed gallery')
+    }
+
     await uploadGuestPhoto({
       albumId,
       tableId,
       displayName,
       deviceId,
-      blob,
+      blob: item.blob,
     })
   }
 
-  async function saveBlob(blob, assignment = {}) {
+  async function saveItem(item, assignment = {}) {
     if (!canUpload && !pendingUpload) return
 
     setUploading(true)
     setPageError(null)
     setCameraError(null)
     try {
-      await uploadPreparedBlob(blob, assignment)
+      await uploadPreparedItem(item, assignment)
       await onPhotosChange()
     } catch (err) {
       const message = err.message ?? 'Upload failed'
@@ -203,6 +236,17 @@ export default function GuestPhotoUploader({
     } finally {
       setUploading(false)
     }
+  }
+
+  async function saveBlob(blob, assignment = {}) {
+    return saveItem({ mediaType: 'image', blob, posterBlob: null }, assignment)
+  }
+
+  async function queueStoryAssign(item) {
+    setPendingUpload({
+      ...item,
+      url: previewUrlForItem(item),
+    })
   }
 
   async function uploadGalleryFiles(files) {
@@ -224,8 +268,8 @@ export default function GuestPhotoUploader({
           break
         }
 
-        const blob = await prepareImageFile(file)
-        await uploadPreparedBlob(blob)
+        const item = await prepareGalleryItem(file)
+        await uploadPreparedItem(item)
         uploaded += 1
         setUploadProgress({ done: uploaded, total: files.length })
         await onPhotosChange()
@@ -233,7 +277,7 @@ export default function GuestPhotoUploader({
 
       if (limitReached && uploaded < files.length) {
         setPageError(
-          `Uploaded ${uploaded} photo${uploaded === 1 ? '' : 's'}. ` +
+          `Uploaded ${uploaded} item${uploaded === 1 ? '' : 's'}. ` +
             `${files.length - uploaded} skipped because you reached the ${maxPhotos}-photo limit.`
         )
       }
@@ -263,8 +307,26 @@ export default function GuestPhotoUploader({
     if (slotsLeft <= 0) return
 
     if (useOrientForGallery) {
-      const blob = await prepareImageFile(files[0])
-      openOrientPreview(blob, { closeCameraAfter: open })
+      const item = await prepareGalleryItem(files[0])
+      if (item.mediaType === 'video') {
+        if (shouldPromptStoryAssign(item)) {
+          await queueStoryAssign(item)
+        } else {
+          setUploading(true)
+          setPageError(null)
+          try {
+            await uploadPreparedItem(item)
+            await onPhotosChange()
+          } catch (err) {
+            setPageError(err.message ?? 'Upload failed')
+          } finally {
+            setUploading(false)
+          }
+        }
+        return
+      }
+
+      openOrientPreview(item.blob, { closeCameraAfter: open })
       return
     }
 
@@ -341,6 +403,8 @@ export default function GuestPhotoUploader({
         closeOrientPreview()
         setPendingUpload({
           blob,
+          mediaType: 'image',
+          posterBlob: null,
           url: previewUrlForBlob(blob),
         })
         return
@@ -363,7 +427,7 @@ export default function GuestPhotoUploader({
     setUploading(true)
     setPageError(null)
     try {
-      await uploadPreparedBlob(pendingUpload.blob, assignment)
+      await uploadPreparedItem(pendingUpload, assignment)
       await onPhotosChange()
       clearPendingUpload()
     } catch (err) {
@@ -374,6 +438,7 @@ export default function GuestPhotoUploader({
   }
 
   async function startEditPhoto(photo) {
+    if (photo.media_type === 'video') return
     setLightboxPhoto(null)
     setPageError(null)
     setUploading(true)
@@ -423,6 +488,7 @@ export default function GuestPhotoUploader({
       rosterTableIds={rosterTableIds}
       poll={pollAssign?.poll ?? null}
       pollOptions={pollAssign?.options ?? []}
+      allowPollAssign={pendingUpload.mediaType !== 'video'}
       onAssign={handleStoryAssign}
       onClose={clearPendingUpload}
       uploading={uploading}
@@ -441,7 +507,7 @@ export default function GuestPhotoUploader({
           </p>
           {remaining > 0 && (
             <p className="poll-hint">
-              You can add {remaining} more favorite photo{remaining === 1 ? '' : 's'}.
+              You can add {remaining} more photo or video{remaining === 1 ? '' : 's'}.
               {galleryAcceptMultiple && ' Select multiple from your gallery at once.'}
             </p>
           )}
@@ -465,7 +531,7 @@ export default function GuestPhotoUploader({
               tabIndex={0}
               aria-label={`View photo${photo.display_name ? ` from ${photo.display_name}` : ''}`}
             >
-              <img src={photo.public_url} alt="" className="guest-photo-thumb-image" />
+              <img src={albumMediaPreviewUrl(photo)} alt="" className="guest-photo-thumb-image" />
               <button
                 type="button"
                 className="guest-photo-thumb-remove"
@@ -508,7 +574,7 @@ export default function GuestPhotoUploader({
               🖼
             </span>
             <span className="guest-photo-action-label">
-              {compact ? 'Upload' : 'Add photos'}
+              {compact ? 'Upload' : 'Add photos or videos'}
             </span>
           </button>
         </div>
@@ -523,7 +589,7 @@ export default function GuestPhotoUploader({
       <input
         ref={galleryFileRef}
         type="file"
-        accept="image/*"
+        accept="image/*,video/mp4,video/quicktime,video/webm"
         multiple={galleryAcceptMultiple}
         className="guest-photo-file-input"
         onChange={handleGalleryChange}
@@ -531,7 +597,7 @@ export default function GuestPhotoUploader({
       <input
         ref={bulkGalleryFileRef}
         type="file"
-        accept="image/*"
+        accept="image/*,video/mp4,video/quicktime,video/webm"
         multiple
         className="guest-photo-file-input"
         onChange={handleBulkGalleryChange}

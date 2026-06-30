@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import LazyPhoto from './LazyPhoto'
+import { albumMediaPreviewUrl } from './AlbumMedia'
 import PhotoLightbox from './PhotoWallExtras'
 import { useAlbumPhotos } from '../hooks/useAlbumPhotos'
 import { deleteAlbumPhotoAdmin } from '../lib/guestPhoto'
@@ -17,6 +18,10 @@ function formatUploadedAt(value) {
 }
 
 function photoSubtitle(photo) {
+  if (photo.media_type === 'video') {
+    if (photo.table_name) return `${photo.table_name} · Video`
+    return 'Quick share video'
+  }
   if (photo.poll_option_label) {
     return photo.poll_category_name
       ? `${photo.poll_option_label} · ${photo.poll_category_name}`
@@ -88,7 +93,7 @@ export default function AdminPhotoModeration({ albumId }) {
                 aria-label={`Preview photo from ${photo.display_name}`}
               >
                 <LazyPhoto
-                  src={photo.public_url}
+                  src={albumMediaPreviewUrl(photo)}
                   alt=""
                   className="admin-photo-moderation-thumb"
                 />

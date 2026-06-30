@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef, useState } from 'react'
 
-import LazyPhoto from './LazyPhoto'
+import AlbumMedia, { isVideoMedia } from './AlbumMedia'
 
 function formatRelativeTime(value) {
   const date = new Date(value)
@@ -59,11 +59,15 @@ export default function PhotoFeedPost({
       : photo.poll_option_label
     : photo.poll_id && photo.poll_title
       ? photo.poll_title
-      : photo.is_open_upload
+      : isVideoMedia(photo)
         ? photo.table_id
-          ? photo.table_name ?? 'Table'
-          : 'Shared Moment'
-        : photo.table_name ?? 'Family reunion'
+          ? `${photo.table_name ?? 'Table'} · Video`
+          : 'Shared video'
+        : photo.is_open_upload
+          ? photo.table_id
+            ? photo.table_name ?? 'Table'
+            : 'Shared Moment'
+          : photo.table_name ?? 'Family reunion'
 
   async function handleLike() {
     if (busy || !userDisplayName) return
@@ -206,7 +210,7 @@ export default function PhotoFeedPost({
           onClick={() => onImageClick?.(photo)}
           aria-label={`View photo from ${displayName}`}
         >
-          <LazyPhoto src={photo.public_url} alt="" className="photo-feed-post-image" />
+          <AlbumMedia item={photo} className="photo-feed-post-image" alt="" />
         </button>
       </div>
 

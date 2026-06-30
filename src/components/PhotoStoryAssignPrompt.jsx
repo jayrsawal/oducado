@@ -28,6 +28,7 @@ export default function PhotoStoryAssignPrompt({
   rosterTableIds = [],
   poll = null,
   pollOptions = [],
+  allowPollAssign = true,
   currentPhoto = null,
   mode = 'upload',
   onAssign,
@@ -190,7 +191,7 @@ export default function PhotoStoryAssignPrompt({
               <span className="photo-table-assign-option-hint">Skip story rings</span>
             </button>
 
-            {poll && pollOptions.length > 0 && (
+            {allowPollAssign && poll && pollOptions.length > 0 && (
               <button
                 type="button"
                 className={`photo-table-assign-option photo-table-assign-option-poll${

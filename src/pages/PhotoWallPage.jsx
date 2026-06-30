@@ -228,12 +228,17 @@ export default function PhotoWallPage() {
       {assignEditPhoto && (
         <PhotoStoryAssignPrompt
           mode="edit"
-          previewUrl={assignEditPhoto.public_url}
+          previewUrl={
+            assignEditPhoto.media_type === 'video'
+              ? assignEditPhoto.poster_url ?? assignEditPhoto.public_url
+              : assignEditPhoto.public_url
+          }
           tables={tableAssignOptions}
           rosterTableIds={rosterTableIds}
           poll={pollAssign?.poll ?? null}
           pollOptions={pollAssign?.options ?? []}
           currentPhoto={assignEditPhoto}
+          allowPollAssign={assignEditPhoto.media_type !== 'video'}
           onAssign={handleSaveAssignment}
           onClose={handleCloseAssignment}
           uploading={assignSaving}

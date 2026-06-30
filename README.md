@@ -47,6 +47,7 @@ Migrations live in `supabase/migrations/` and must be run in order:
 | `018_combined_device_upload_limit.sql` | Single per-device upload limit for all photo types |
 | `019_album_photo_poll_options.sql` | Tag quick shares to poll options; latest photo becomes option image |
 | `020_update_album_photo_assignment.sql` | Let guests change table/poll story assignment after upload |
+| `021_album_video_uploads.sql` | Gallery video uploads (MP4/MOV/WebM) with poster thumbnails |
 
 **Option A — Supabase CLI (recommended)**
 
@@ -237,12 +238,12 @@ The **photo album** is its own feature at **`/admin/photos`** — not tied to a 
 1. **Admin → Photo album** — set up tables and guests on the roster (used for table story rings and optional tagging when guests share photos)
 2. **Open photo uploads** on the Details tab when you are ready
 3. **QR codes** tab — print one code for the reunion (points to **`/photos/wall`**)
-4. Guests scan → open the feed → enter their name → share photos and optionally tag a table or poll option
+4. Guests scan → open the feed → enter their name → share photos or short videos from the gallery (camera is still photos only), and optionally tag a table or poll option
 5. Everyone browses **`/photos/wall`** (feed, gallery, or carousel) from the landing page, guest list, or QR code
 
 When assigning a photo after orient, guests can pick a **poll story** and search for an option. The most recent photo assigned to each option becomes that option's image on the ballot.
 
-Run migrations **`011`** through **`020`** (see [Database setup](#database-setup)). If you already ran `010`, `011` replaces the poll-tied tables.
+Run migrations **`011`** through **`021`** (see [Database setup](#database-setup)). If you already ran `010`, `011` replaces the poll-tied tables.
 
 ### Install and run
 

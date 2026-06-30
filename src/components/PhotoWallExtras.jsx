@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom'
 import useBodyScrollLock from '../hooks/useBodyScrollLock'
 import PageQRCode from './PageQRCode'
 import PhotoWatermark from './PhotoWatermark'
+import AlbumMedia, { isVideoMedia } from './AlbumMedia'
 
 function useFullscreenQrSize(fullscreen) {
   const [size, setSize] = useState(168)
@@ -179,7 +180,12 @@ export default function PhotoLightbox({
         onTouchEnd={handleTouchEnd}
       >
         <div className="photo-lightbox-image-wrap">
-          <img src={photo.public_url} alt="" className="photo-lightbox-image" key={photo.id} />
+          <AlbumMedia
+            item={photo}
+            className="photo-lightbox-image"
+            alt=""
+            videoControls
+          />
           <PhotoWatermark
             displayName={photo.display_name}
             tableName={photo.table_name}
@@ -205,7 +211,7 @@ export default function PhotoLightbox({
                   </svg>
                 </button>
               )}
-              {onRotate && (
+              {onRotate && !isVideoMedia(photo) && (
                 <button
                   type="button"
                   className="photo-lightbox-action-btn"

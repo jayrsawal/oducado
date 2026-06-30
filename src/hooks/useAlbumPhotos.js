@@ -13,7 +13,8 @@ export function useAlbumPhotos(albumId) {
     const { data, error: fetchError } = await supabase
       .from('album_guest_photos')
       .select(
-        `id, album_id, table_id, poll_id, poll_option_id, display_name, device_id, public_url, created_at, is_open_upload,
+        `id, album_id, table_id, poll_id, poll_option_id, display_name, device_id, public_url,
+        poster_url, media_type, created_at, is_open_upload,
         photo_tables(name),
         polls(title),
         poll_options(label, poll_categories(name))`

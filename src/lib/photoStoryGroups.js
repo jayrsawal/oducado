@@ -18,6 +18,7 @@ export function buildTableStories(photos) {
   const groups = new Map()
 
   for (const photo of photos) {
+    if (photo.media_type === 'video') continue
     if (photo.poll_id && !photo.table_id) continue
 
     const key = photo.is_open_upload
@@ -51,7 +52,7 @@ export function buildPollStories(photos) {
   const groups = new Map()
 
   for (const photo of photos) {
-    if (!photo.poll_id) continue
+    if (!photo.poll_id || photo.media_type === 'video') continue
 
     const key = `poll:${photo.poll_id}`
     const name = photo.poll_title ?? 'Poll'
