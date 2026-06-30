@@ -39,9 +39,6 @@ export default function Layout() {
             >
               Photos
             </NavLink>
-            <Link to="/admin" className="site-nav-link site-nav-link-muted">
-              Admin
-            </Link>
           </div>
         </nav>
         <VoteNavProvider>

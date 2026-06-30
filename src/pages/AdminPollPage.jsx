@@ -2,13 +2,14 @@ import { useCallback, useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import PollBallot from '../components/PollBallot'
 import AdminRosterEditor from '../components/AdminRosterEditor'
+import AdminPageQRCodes from '../components/AdminPageQRCodes'
 import AdminVoteList from '../components/AdminVoteList'
 import OptionPhotoCapture from '../components/OptionPhotoCapture'
 import PollResults from '../components/PollResults'
 import { useAuth } from '../context/AuthContext'
 import { POLL_SELECT, sortPollCategories, supabase } from '../lib/supabase'
 
-const TABS = ['details', 'roster', 'categories', 'results', 'votes', 'proxy']
+const TABS = ['details', 'roster', 'categories', 'results', 'votes', 'proxy', 'qrcodes']
 
 export default function AdminPollPage() {
   const { pollId } = useParams()
@@ -285,7 +286,9 @@ export default function AdminPollPage() {
             className={`poll-tab${tab === t ? ' poll-tab-active' : ''}`}
             onClick={() => setTab(t)}
           >
-            {t.charAt(0).toUpperCase() + t.slice(1)}
+            {t === 'qrcodes'
+              ? 'QR code'
+              : t.charAt(0).toUpperCase() + t.slice(1)}
           </button>
         ))}
       </div>
@@ -554,6 +557,21 @@ export default function AdminPollPage() {
               </button>
             </>
           )}
+        </section>
+      )}
+
+      {tab === 'qrcodes' && (
+        <section className="poll-section">
+          <p className="poll-hint">
+            Print or display this QR code at the reunion. Guests scan it to open the voting guest
+            list. When this poll is open, it becomes the active ballot.
+          </p>
+          <AdminPageQRCodes
+            path="/polls"
+            title={poll.title}
+            fileNameBase="poll-voting-qr-code"
+            maximizeLabel="Maximize poll voting QR code"
+          />
         </section>
       )}
     </div>
