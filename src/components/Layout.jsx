@@ -27,7 +27,7 @@ export default function Layout() {
       <div className="container">
         <nav className="site-nav">
           <Link to="/" className="site-nav-brand">
-            Oducado Family Reunion 2026
+            ODUCADO
           </Link>
           <div className="site-nav-links">
             <PollsNavLink />
