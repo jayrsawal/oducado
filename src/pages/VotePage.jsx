@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom'
+import { Navigate, useNavigate, useSearchParams } from 'react-router-dom'
 import PollBallot from '../components/PollBallot'
-import PollPageNav from '../components/PollPageNav'
+import { useVoteNav } from '../contexts/VoteNavContext'
 import { getDeviceId, rememberVoterName } from '../lib/deviceId'
 import { POLL_SELECT, sortPollCategories, supabase } from '../lib/supabase'
 import { useActivePoll } from '../hooks/useActivePoll'
+
+const VOTE_BALLOT_FORM_ID = 'vote-ballot'
 
 export default function VotePage() {
   const navigate = useNavigate()
@@ -12,10 +14,15 @@ export default function VotePage() {
   const voterName = searchParams.get('name')?.trim() ?? ''
   const { poll, loading: pollLoading, error: pollError } = useActivePoll()
   const deviceId = getDeviceId()
+  const { setVoteNav, clearVoteNav } = useVoteNav()
 
   const [ballotPoll, setBallotPoll] = useState(null)
   const [voterId, setVoterId] = useState(null)
   const [initialSelections, setInitialSelections] = useState([])
+  const [ballotState, setBallotState] = useState({
+    selectionsUnchanged: true,
+    submitting: false,
+  })
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
@@ -78,6 +85,37 @@ export default function VotePage() {
       .finally(() => setLoading(false))
   }, [pollLoading, poll, voterName, loadBallot])
 
+  const handleBallotStateChange = useCallback((next) => {
+    setBallotState(next)
+  }, [])
+
+  useEffect(() => {
+    if (!ballotPoll || !voterId) {
+      clearVoteNav()
+      return
+    }
+
+    const hasVoted = initialSelections.length > 0
+    const showResults =
+      hasVoted && ballotState.selectionsUnchanged && !ballotState.submitting
+
+    setVoteNav({
+      showResults,
+      formId: VOTE_BALLOT_FORM_ID,
+      submitLabel: hasVoted ? 'Update vote' : 'Submit vote',
+      submitting: ballotState.submitting,
+    })
+
+    return () => clearVoteNav()
+  }, [
+    ballotPoll,
+    voterId,
+    initialSelections,
+    ballotState,
+    setVoteNav,
+    clearVoteNav,
+  ])
+
   async function submitVote(optionIds) {
     const { error: submitError } = await supabase.rpc('submit_poll_ballot', {
       p_poll_id: poll.id,
@@ -101,8 +139,7 @@ export default function VotePage() {
 
   if (pollError) {
     return (
-      <div className="poll-page art-deco-border">
-        <PollPageNav backTo="/" backLabel="Guest list" />
+      <div className="poll-page art-deco-border poll-page-with-float-nav">
         <p className="poll-message poll-message-error">{pollError}</p>
       </div>
     )
@@ -110,8 +147,7 @@ export default function VotePage() {
 
   if (!poll) {
     return (
-      <div className="poll-page art-deco-border">
-        <PollPageNav backTo="/" backLabel="Guest list" />
+      <div className="poll-page art-deco-border poll-page-with-float-nav">
         <p className="poll-message">There is no active poll right now.</p>
       </div>
     )
@@ -119,20 +155,14 @@ export default function VotePage() {
 
   if (error) {
     return (
-      <div className="poll-page art-deco-border">
-        <PollPageNav backTo="/" backLabel="Guest list" />
+      <div className="poll-page art-deco-border poll-page-with-float-nav">
         <p className="poll-message poll-message-error">{error}</p>
-        <p className="poll-page-footer-link">
-          <Link to="/">← Choose a different name</Link>
-        </p>
       </div>
     )
   }
 
   return (
-    <div className="poll-page art-deco-border">
-      <PollPageNav backTo="/" backLabel="Guest list" />
-
+    <div className="poll-page art-deco-border poll-page-with-float-nav">
       <header className="poll-page-header poll-page-header-compact">
         <p className="poll-page-eyebrow">Oducado Family Reunion 2026</p>
         <h1 className="poll-page-title">{ballotPoll.title}</h1>
@@ -151,13 +181,12 @@ export default function VotePage() {
         key={voterId}
         poll={ballotPoll}
         initialSelections={initialSelections}
+        formId={VOTE_BALLOT_FORM_ID}
+        hideSubmitButton
         submitLabel={initialSelections.length > 0 ? 'Update vote' : 'Submit vote'}
+        onBallotStateChange={handleBallotStateChange}
         onSubmit={submitVote}
       />
-
-      <p className="poll-page-footer-link">
-        <Link to="/results">View live results →</Link>
-      </p>
     </div>
   )
 }

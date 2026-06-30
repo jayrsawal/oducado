@@ -2,6 +2,15 @@ import { useEffect, useMemo, useState } from 'react'
 import OptionVisual from './OptionVisual'
 import { sortPollOptions } from '../lib/supabase'
 
+function selectionsMatch(selected, initialSelections) {
+  const initial = new Set(initialSelections)
+  if (selected.size !== initial.size) return false
+  for (const id of selected) {
+    if (!initial.has(id)) return false
+  }
+  return true
+}
+
 function selectionHint(category) {
   const { min_selections: min, max_selections: max } = category
   if (min > 0 && max != null && min === max) {
@@ -25,6 +34,9 @@ export default function PollBallot({
   submitLabel = 'Submit vote',
   onSubmit,
   disabled = false,
+  formId,
+  hideSubmitButton = false,
+  onBallotStateChange,
 }) {
   const [selected, setSelected] = useState(() => new Set(initialSelections))
   const [submitting, setSubmitting] = useState(false)
@@ -47,6 +59,15 @@ export default function PollBallot({
         })),
     [poll.poll_categories]
   )
+
+  const selectionsUnchanged = useMemo(
+    () => selectionsMatch(selected, initialSelections),
+    [selected, initialSelections]
+  )
+
+  useEffect(() => {
+    onBallotStateChange?.({ selectionsUnchanged, submitting })
+  }, [selectionsUnchanged, submitting, onBallotStateChange])
 
   function toggleOption(category, optionId) {
     setError(null)
@@ -126,7 +147,7 @@ export default function PollBallot({
   }
 
   return (
-    <form className="poll-ballot" onSubmit={handleSubmit}>
+    <form id={formId} className="poll-ballot" onSubmit={handleSubmit}>
       {categories.map((category) => (
         <fieldset key={category.id} className="poll-category" disabled={disabled}>
           <legend className="poll-category-header">
@@ -187,7 +208,7 @@ export default function PollBallot({
         <p className="poll-message poll-message-success">Vote submitted!</p>
       )}
 
-      {!disabled && (
+      {!disabled && !hideSubmitButton && (
         <button
           type="submit"
           className="poll-button poll-button-primary"

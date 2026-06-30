@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { removeOptionPhoto, uploadOptionPhoto } from '../lib/optionPhoto'
 
 export default function OptionPhotoCapture({
@@ -7,6 +8,7 @@ export default function OptionPhotoCapture({
   optionLabel,
   imageUrl,
   onPhotoChange,
+  tilePreview = false,
 }) {
   const videoRef = useRef(null)
   const streamRef = useRef(null)
@@ -18,6 +20,9 @@ export default function OptionPhotoCapture({
 
   useEffect(() => {
     if (!open) return undefined
+
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
 
     let cancelled = false
 
@@ -45,6 +50,7 @@ export default function OptionPhotoCapture({
 
     return () => {
       cancelled = true
+      document.body.style.overflow = previousOverflow
       streamRef.current?.getTracks().forEach((track) => track.stop())
       streamRef.current = null
     }
@@ -93,7 +99,8 @@ export default function OptionPhotoCapture({
     await saveBlob(file)
   }
 
-  async function handleRemove() {
+  async function handleRemove(event) {
+    event.stopPropagation()
     if (!confirm(`Remove photo for "${optionLabel}"?`)) return
     setUploading(true)
     setError(null)
@@ -105,6 +112,128 @@ export default function OptionPhotoCapture({
     } finally {
       setUploading(false)
     }
+  }
+
+  const modal = open
+    ? createPortal(
+        <div className="option-photo-modal-backdrop option-photo-modal-fullscreen">
+          <div className="option-photo-modal option-photo-modal-panel">
+            <div className="option-photo-modal-header">
+              <h3 className="option-photo-modal-title">{optionLabel}</h3>
+              <button
+                type="button"
+                className="option-photo-modal-close"
+                onClick={closeCamera}
+                disabled={uploading}
+                aria-label="Close camera"
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="option-photo-modal-body">
+              {error ? (
+                <p className="poll-message poll-message-error">{error}</p>
+              ) : (
+                <video
+                  ref={videoRef}
+                  className="option-photo-video"
+                  autoPlay
+                  playsInline
+                  muted
+                />
+              )}
+            </div>
+
+            <div className="option-photo-modal-actions">
+              <button
+                type="button"
+                className="poll-button poll-button-secondary poll-button-small"
+                onClick={() =>
+                  setFacingMode((mode) =>
+                    mode === 'environment' ? 'user' : 'environment'
+                  )
+                }
+              >
+                Flip camera
+              </button>
+              <button
+                type="button"
+                className="poll-button poll-button-secondary poll-button-small"
+                onClick={() => fileRef.current?.click()}
+                disabled={uploading}
+              >
+                Upload file
+              </button>
+              <button
+                type="button"
+                className="poll-button poll-button-primary"
+                onClick={captureFromCamera}
+                disabled={uploading || !!error}
+              >
+                {uploading ? 'Saving…' : 'Capture'}
+              </button>
+              <button
+                type="button"
+                className="poll-button poll-button-secondary"
+                onClick={closeCamera}
+                disabled={uploading}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )
+    : null
+
+  if (tilePreview) {
+    return (
+      <div className="option-photo option-photo-tile">
+        <button
+          type="button"
+          className="option-photo-tile-hit"
+          onClick={() => setOpen(true)}
+          disabled={uploading}
+        >
+          {imageUrl ? (
+            <img src={imageUrl} alt={optionLabel} className="option-photo-tile-image" />
+          ) : (
+            <span className="option-photo-tile-empty">Tap to add photo</span>
+          )}
+        </button>
+        <div className="option-photo-tile-actions">
+          <button
+            type="button"
+            className="poll-button poll-button-secondary poll-button-small"
+            disabled={uploading}
+            onClick={() => setOpen(true)}
+          >
+            {imageUrl ? 'Retake' : 'Take photo'}
+          </button>
+          {imageUrl && (
+            <button
+              type="button"
+              className="poll-button poll-button-danger poll-button-small"
+              disabled={uploading}
+              onClick={handleRemove}
+            >
+              Remove
+            </button>
+          )}
+        </div>
+        <input
+          ref={fileRef}
+          type="file"
+          accept="image/*"
+          capture="environment"
+          className="option-photo-file-input"
+          onChange={handleFileChange}
+        />
+        {modal}
+      </div>
+    )
   }
 
   return (
@@ -146,67 +275,7 @@ export default function OptionPhotoCapture({
         className="option-photo-file-input"
         onChange={handleFileChange}
       />
-
-      {open && (
-        <div className="option-photo-modal-backdrop" onClick={closeCamera}>
-          <div
-            className="option-photo-modal"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h3 className="option-photo-modal-title">{optionLabel}</h3>
-
-            {error ? (
-              <p className="poll-message poll-message-error">{error}</p>
-            ) : (
-              <video
-                ref={videoRef}
-                className="option-photo-video"
-                autoPlay
-                playsInline
-                muted
-              />
-            )}
-
-            <div className="option-photo-modal-actions">
-              <button
-                type="button"
-                className="poll-button poll-button-secondary poll-button-small"
-                onClick={() =>
-                  setFacingMode((mode) =>
-                    mode === 'environment' ? 'user' : 'environment'
-                  )
-                }
-              >
-                Flip camera
-              </button>
-              <button
-                type="button"
-                className="poll-button poll-button-secondary poll-button-small"
-                onClick={() => fileRef.current?.click()}
-                disabled={uploading}
-              >
-                Upload file
-              </button>
-              <button
-                type="button"
-                className="poll-button poll-button-primary"
-                onClick={captureFromCamera}
-                disabled={uploading || !!error}
-              >
-                {uploading ? 'Saving…' : 'Capture'}
-              </button>
-              <button
-                type="button"
-                className="poll-button poll-button-secondary poll-button-small"
-                onClick={closeCamera}
-                disabled={uploading}
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {modal}
     </div>
   )
 }

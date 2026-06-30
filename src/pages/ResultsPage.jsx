@@ -1,5 +1,3 @@
-import { Link } from 'react-router-dom'
-import PollPageNav from '../components/PollPageNav'
 import PollResults from '../components/PollResults'
 import { useActivePoll } from '../hooks/useActivePoll'
 
@@ -31,21 +29,17 @@ export default function ResultsPage() {
   }
 
   return (
-    <div className="poll-page art-deco-border">
-      <PollPageNav backTo="/" backLabel="Guest list" />
-
+    <div className="poll-page art-deco-border poll-page-with-float-nav">
       <header className="poll-page-header poll-page-header-compact">
         <p className="poll-page-eyebrow">Oducado Family Reunion 2026</p>
         <h1 className="poll-page-title">{poll.title}</h1>
       </header>
 
-      <PollResults pollId={poll.id} />
-
-      {poll.status === 'open' && (
-        <p className="poll-page-footer-link">
-          <Link to="/">← Back to guest list</Link>
-        </p>
-      )}
+      <PollResults
+        pollId={poll.id}
+        pollStatus={poll.status}
+        resultsRevealed={poll.results_revealed}
+      />
     </div>
   )
 }

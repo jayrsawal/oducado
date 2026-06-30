@@ -12,7 +12,7 @@ export function useActivePoll({ includeClosed = false } = {}) {
 
       const { data: openPoll, error: openError } = await supabase
         .from('polls')
-        .select('id, title, description, status')
+        .select('id, title, description, status, results_revealed')
         .eq('status', 'open')
         .order('created_at', { ascending: false })
         .limit(1)
@@ -38,7 +38,7 @@ export function useActivePoll({ includeClosed = false } = {}) {
 
       const { data: closedPoll, error: closedError } = await supabase
         .from('polls')
-        .select('id, title, description, status')
+        .select('id, title, description, status, results_revealed')
         .order('created_at', { ascending: false })
         .eq('status', 'closed')
         .limit(1)

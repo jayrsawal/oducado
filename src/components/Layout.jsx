@@ -1,5 +1,8 @@
 import { Link } from 'react-router-dom'
+import FloatingPollNav from './FloatingPollNav'
 import PageTransition from './PageTransition'
+import { VoteNavProvider } from '../contexts/VoteNavContext'
+import { ResultsNavProvider } from '../contexts/ResultsNavContext'
 import '../App.css'
 import '../polls.css'
 
@@ -13,18 +16,17 @@ export default function Layout() {
             Oducado Reunion Polls
           </Link>
           <div className="site-nav-links">
-            <Link to="/" className="site-nav-link">
-              Guest list
-            </Link>
-            <Link to="/results" className="site-nav-link">
-              Results
-            </Link>
             <Link to="/admin" className="site-nav-link site-nav-link-muted">
               Admin
             </Link>
           </div>
         </nav>
-        <PageTransition />
+        <VoteNavProvider>
+          <ResultsNavProvider>
+            <PageTransition />
+            <FloatingPollNav />
+          </ResultsNavProvider>
+        </VoteNavProvider>
       </div>
     </>
   )

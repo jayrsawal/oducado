@@ -35,6 +35,7 @@ Migrations live in `supabase/migrations/` and must be run in order:
 | `006_poll_roster.sql` | Pre-defined guest name list per poll |
 | `007_poll_tables.sql` | Seating tables to group guests on the roster |
 | `008_option_images.sql` | Option photos via Supabase Storage |
+| `009_reveal_winners.sql` | Admin-controlled winner reveal after poll closes |
 
 **Option A — Supabase CLI (recommended)**
 

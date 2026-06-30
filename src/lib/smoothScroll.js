@@ -4,13 +4,28 @@ function easeInOutCubic(progress) {
     : 1 - (-2 * progress + 2) ** 3 / 2
 }
 
-export function smoothScrollTo(element, targetLeft, duration = 650) {
+function prefersReducedMotion() {
+  return window.matchMedia('(prefers-reduced-motion: reduce)').matches
+}
+
+export const CAROUSEL_SCROLL_DURATION = 850
+
+export function smoothScrollTo(element, targetLeft, duration = CAROUSEL_SCROLL_DURATION, onComplete) {
   if (!element) return
+
+  if (prefersReducedMotion()) {
+    element.scrollLeft = targetLeft
+    onComplete?.()
+    return
+  }
 
   const startLeft = element.scrollLeft
   const distance = targetLeft - startLeft
 
-  if (Math.abs(distance) < 1) return
+  if (Math.abs(distance) < 1) {
+    onComplete?.()
+    return
+  }
 
   const startTime = performance.now()
 
@@ -21,17 +36,23 @@ export function smoothScrollTo(element, targetLeft, duration = 650) {
 
     if (progress < 1) {
       requestAnimationFrame(step)
+    } else {
+      onComplete?.()
     }
   }
 
   requestAnimationFrame(step)
 }
 
-export function centerElementInScrollContainer(container, element, duration) {
-  if (!container || !element) return
+export function scrollToCarouselPage(container, pageIndex, duration = CAROUSEL_SCROLL_DURATION, onComplete) {
+  if (!container) return
 
-  const scrollLeft =
-    element.offsetLeft - (container.clientWidth - element.offsetWidth) / 2
+  const targetLeft = pageIndex * container.clientWidth
+  const previousSnap = container.style.scrollSnapType
+  container.style.scrollSnapType = 'none'
 
-  smoothScrollTo(container, Math.max(0, scrollLeft), duration)
+  smoothScrollTo(container, targetLeft, duration, () => {
+    container.style.scrollSnapType = previousSnap
+    onComplete?.()
+  })
 }

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import PollBallot from '../components/PollBallot'
 import AdminRosterEditor from '../components/AdminRosterEditor'
 import AdminVoteList from '../components/AdminVoteList'
@@ -12,6 +12,7 @@ const TABS = ['details', 'roster', 'categories', 'results', 'votes', 'proxy']
 
 export default function AdminPollPage() {
   const { pollId } = useParams()
+  const navigate = useNavigate()
   const { session } = useAuth()
   const [poll, setPoll] = useState(null)
   const [tab, setTab] = useState('details')
@@ -21,6 +22,7 @@ export default function AdminPollPage() {
 
   const [proxyName, setProxyName] = useState('')
   const [proxyVoterId, setProxyVoterId] = useState(null)
+  const [revealing, setRevealing] = useState(false)
 
   const load = useCallback(async () => {
     setError(null)
@@ -94,6 +96,26 @@ export default function AdminPollPage() {
     }
 
     await savePoll({ status: 'open', opens_at: new Date().toISOString(), closes_at: null })
+  }
+
+  async function deletePoll() {
+    const confirmed = window.confirm(
+      `Delete "${poll.title}" permanently? All votes, roster entries, and categories will be removed. This cannot be undone.`
+    )
+    if (!confirmed) return
+
+    setSaving(true)
+    setError(null)
+
+    const { error: deleteError } = await supabase.from('polls').delete().eq('id', pollId)
+
+    setSaving(false)
+    if (deleteError) {
+      setError(deleteError.message)
+      return
+    }
+
+    navigate('/admin')
   }
 
   async function addCategory() {
@@ -205,6 +227,30 @@ export default function AdminPollPage() {
     setProxyVoterId(null)
   }
 
+  async function revealWinners() {
+    if (
+      !confirm(
+        'Reveal winners to everyone? Vote counts and rankings will become public.'
+      )
+    ) {
+      return
+    }
+
+    setRevealing(true)
+    setError(null)
+    const { error: updateError } = await supabase
+      .from('polls')
+      .update({ results_revealed: true })
+      .eq('id', pollId)
+
+    setRevealing(false)
+    if (updateError) {
+      setError(updateError.message)
+      return
+    }
+    await load()
+  }
+
   if (loading) {
     return <p className="poll-loading">Loading poll…</p>
   }
@@ -275,13 +321,23 @@ export default function AdminPollPage() {
             {poll.status === 'closed' && (
               <button
                 type="button"
-                className="poll-button poll-button-secondary"
+                className="poll-button poll-button-primary"
                 disabled={saving}
                 onClick={reopenPoll}
               >
                 Reopen poll
               </button>
             )}
+          </div>
+          <div className="admin-danger-zone">
+            <button
+              type="button"
+              className="poll-button poll-button-danger"
+              disabled={saving}
+              onClick={deletePoll}
+            >
+              Delete poll
+            </button>
           </div>
           <p className="poll-hint">
             Opening this poll closes any other open poll. Guests see the active poll on the{' '}
@@ -371,15 +427,32 @@ export default function AdminPollPage() {
                 </label>
               </div>
 
-              <ul className="admin-options-list">
+              <div className="admin-options-tiles">
                 {category.poll_options?.map((option) => (
-                  <li key={option.id} className="admin-option-card">
-                    <div className="admin-option-row">
-                      <input
-                        className="poll-input"
-                        value={option.label}
-                        onChange={(e) =>
-                          setPoll((prev) => ({
+                  <div key={option.id} className="admin-option-tile">
+                    <button
+                      type="button"
+                      className="admin-option-tile-delete"
+                      aria-label={`Delete ${option.label}`}
+                      onClick={() => deleteOption(option.id)}
+                    >
+                      ×
+                    </button>
+                    <OptionPhotoCapture
+                      pollId={pollId}
+                      optionId={option.id}
+                      optionLabel={option.label}
+                      imageUrl={option.image_url}
+                      onPhotoChange={handleOptionPhotoChange}
+                      tilePreview
+                    />
+                    <input
+                      className="poll-input admin-option-tile-label"
+                      value={option.label}
+                      placeholder="Option name"
+                      onChange={(e) =>
+                        setPoll((prev) =>
+                          sortPollCategories({
                             ...prev,
                             poll_categories: prev.poll_categories.map((c) =>
                               c.id === category.id
@@ -393,28 +466,14 @@ export default function AdminPollPage() {
                                   }
                                 : c
                             ),
-                          }))
-                        }
-                        onBlur={(e) => updateOption(option.id, { label: e.target.value })}
-                      />
-                      <button
-                        type="button"
-                        className="poll-button poll-button-danger poll-button-small"
-                        onClick={() => deleteOption(option.id)}
-                      >
-                        ×
-                      </button>
-                    </div>
-                    <OptionPhotoCapture
-                      pollId={pollId}
-                      optionId={option.id}
-                      optionLabel={option.label}
-                      imageUrl={option.image_url}
-                      onPhotoChange={handleOptionPhotoChange}
+                          })
+                        )
+                      }
+                      onBlur={(e) => updateOption(option.id, { label: e.target.value })}
                     />
-                  </li>
+                  </div>
                 ))}
-              </ul>
+              </div>
 
               <button
                 type="button"
@@ -430,7 +489,15 @@ export default function AdminPollPage() {
 
       {tab === 'results' && (
         <section className="poll-section">
-          <PollResults pollId={pollId} />
+          <PollResults
+            pollId={pollId}
+            pollStatus={poll.status}
+            resultsRevealed={poll.results_revealed}
+            showRevealControl
+            revealing={revealing}
+            onRevealWinners={revealWinners}
+            inlineRefresh
+          />
         </section>
       )}
 

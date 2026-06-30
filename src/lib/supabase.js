@@ -16,6 +16,7 @@ export const POLL_SELECT = `
   title,
   description,
   status,
+  results_revealed,
   opens_at,
   closes_at,
   created_at,

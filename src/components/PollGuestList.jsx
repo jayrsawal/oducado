@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import PollRosterBoard from './PollRosterBoard'
 import { usePollRoster } from '../hooks/usePollRoster'
 import { buildRosterDisplayGroups } from '../lib/roster'
@@ -42,14 +42,14 @@ export default function PollGuestList({ poll, showEyebrow = false }) {
 
   if (error) {
     return (
-      <div className="poll-page art-deco-border">
+      <div className="poll-page art-deco-border poll-page-with-float-nav">
         <p className="poll-message poll-message-error">{error}</p>
       </div>
     )
   }
 
   return (
-    <div className="poll-page art-deco-border">
+    <div className="poll-page art-deco-border poll-page-with-float-nav">
       <header className="poll-page-header">
         {showEyebrow && (
           <p className="poll-page-eyebrow">Oducado Family Reunion 2026</p>
@@ -131,10 +131,6 @@ export default function PollGuestList({ poll, showEyebrow = false }) {
           )}
         </div>
       </div>
-
-      <p className="poll-page-footer-link">
-        <Link to="/results">View live results →</Link>
-      </p>
     </div>
   )
 }
