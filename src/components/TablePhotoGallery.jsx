@@ -69,6 +69,7 @@ export default function TablePhotoGallery({
                 <PhotoWatermark
                   displayName={photo.display_name}
                   tableName={photo.table_name}
+                  createdAt={photo.created_at}
                   size="small"
                 />
               )}

@@ -27,6 +27,7 @@ export default function GuestPhotoUploader({
   const [orientPreview, setOrientPreview] = useState(null)
   const [lightboxPhoto, setLightboxPhoto] = useState(null)
   const [uploading, setUploading] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState(null)
   const [pageError, setPageError] = useState(null)
   const [cameraError, setCameraError] = useState(null)
 
@@ -72,6 +73,20 @@ export default function GuestPhotoUploader({
     setCameraError(null)
   }
 
+  async function uploadPreparedBlob(blob) {
+    if (mode === 'open') {
+      await uploadOpenPhoto({ albumId, deviceId, blob })
+    } else {
+      await uploadGuestPhoto({
+        albumId,
+        tableId,
+        displayName,
+        deviceId,
+        blob,
+      })
+    }
+  }
+
   async function saveBlob(blob) {
     if (!canUpload) return
 
@@ -79,17 +94,7 @@ export default function GuestPhotoUploader({
     setPageError(null)
     setCameraError(null)
     try {
-      if (mode === 'open') {
-        await uploadOpenPhoto({ albumId, deviceId, blob })
-      } else {
-        await uploadGuestPhoto({
-          albumId,
-          tableId,
-          displayName,
-          deviceId,
-          blob,
-        })
-      }
+      await uploadPreparedBlob(blob)
       await onPhotosChange()
     } catch (err) {
       const message = err.message ?? 'Upload failed'
@@ -105,34 +110,76 @@ export default function GuestPhotoUploader({
     }
   }
 
+  async function uploadGalleryFiles(files) {
+    if (files.length === 0) return
+
+    setUploading(true)
+    setUploadProgress({ done: 0, total: files.length })
+    setPageError(null)
+    setCameraError(null)
+
+    let uploaded = 0
+    let limitReached = false
+
+    try {
+      for (const file of files) {
+        const slotsLeft = maxPhotos - photos.length - uploaded
+        if (slotsLeft <= 0) {
+          limitReached = true
+          break
+        }
+
+        const blob = await prepareImageFile(file)
+        await uploadPreparedBlob(blob)
+        uploaded += 1
+        setUploadProgress({ done: uploaded, total: files.length })
+        await onPhotosChange()
+      }
+
+      if (limitReached && uploaded < files.length) {
+        setPageError(
+          `Uploaded ${uploaded} photo${uploaded === 1 ? '' : 's'}. ` +
+            `${files.length - uploaded} skipped because you reached the ${maxPhotos}-photo limit.`
+        )
+      }
+    } catch (err) {
+      const message = err.message ?? 'Upload failed'
+      if (uploaded > 0) {
+        setPageError(`Uploaded ${uploaded} photo${uploaded === 1 ? '' : 's'}, then failed: ${message}`)
+      } else {
+        setPageError(message)
+      }
+    } finally {
+      setUploading(false)
+      setUploadProgress(null)
+    }
+  }
+
   function handleCameraCapture(blob) {
     openOrientPreview(blob, { closeCameraAfter: true })
   }
 
   async function handleGalleryChange(event) {
-    const file = event.target.files?.[0]
+    const files = [...(event.target.files ?? [])]
     event.target.value = ''
-    if (!file) return
+    if (files.length === 0) return
 
-    try {
-      const blob = await prepareImageFile(file)
-      openOrientPreview(blob)
-    } catch (err) {
-      setPageError(err.message ?? 'Upload failed')
-    }
+    const slotsLeft = maxPhotos - photos.length
+    if (slotsLeft <= 0) return
+
+    await uploadGalleryFiles(files.slice(0, slotsLeft))
   }
 
   async function handleCameraFileChange(event) {
-    const file = event.target.files?.[0]
+    const files = [...(event.target.files ?? [])]
     event.target.value = ''
-    if (!file) return
+    if (files.length === 0) return
 
-    try {
-      const blob = await prepareImageFile(file)
-      openOrientPreview(blob, { closeCameraAfter: true })
-    } catch (err) {
-      setCameraError(err.message ?? 'Upload failed')
-    }
+    setOpen(false)
+    const slotsLeft = maxPhotos - photos.length
+    if (slotsLeft <= 0) return
+
+    await uploadGalleryFiles(files.slice(0, slotsLeft))
   }
 
   function rotatePreview(delta) {
@@ -228,6 +275,7 @@ export default function GuestPhotoUploader({
         {remaining > 0 && (
           <p className="poll-hint">
             You can add {remaining} more favorite photo{remaining === 1 ? '' : 's'}.
+            {' '}Select multiple from your gallery at once.
           </p>
         )}
       </div>
@@ -289,7 +337,7 @@ export default function GuestPhotoUploader({
             <span className="guest-photo-action-icon" aria-hidden="true">
               🖼
             </span>
-            <span className="guest-photo-action-label">Choose from gallery</span>
+            <span className="guest-photo-action-label">Add photos</span>
           </button>
         </div>
       )}
@@ -298,6 +346,7 @@ export default function GuestPhotoUploader({
         ref={galleryFileRef}
         type="file"
         accept="image/*"
+        multiple
         className="guest-photo-file-input"
         onChange={handleGalleryChange}
       />
@@ -311,7 +360,12 @@ export default function GuestPhotoUploader({
       />
 
       {pageError && !orientPreview && <p className="poll-message poll-message-error">{pageError}</p>}
-      {uploading && !open && !orientPreview && !lightboxPhoto && (
+      {uploading && uploadProgress && (
+        <p className="poll-hint guest-photo-upload-progress">
+          Uploading {uploadProgress.done} of {uploadProgress.total}…
+        </p>
+      )}
+      {uploading && !open && !orientPreview && !lightboxPhoto && !uploadProgress && (
         <p className="poll-hint">Working…</p>
       )}
 

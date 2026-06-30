@@ -149,6 +149,7 @@ export default function PhotoWallCarousel({
                   <PhotoWatermark
                     displayName={slide.display_name}
                     tableName={slide.table_name}
+                    createdAt={slide.created_at}
                   />
                 </div>
               )}

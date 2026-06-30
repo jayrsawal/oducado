@@ -2,6 +2,23 @@ import { createElement } from 'react'
 import { createRoot } from 'react-dom/client'
 import { QRCodeCanvas } from 'qrcode.react'
 
+const QR_THEMES = {
+  color: {
+    bgColor: '#0f0f0f',
+    fgColor: '#d4af37',
+    canvasBg: '#0f0f0f',
+    titleColor: '#d4af37',
+    fileSuffix: '',
+  },
+  print: {
+    bgColor: '#ffffff',
+    fgColor: '#000000',
+    canvasBg: '#ffffff',
+    titleColor: '#000000',
+    fileSuffix: '-bw',
+  },
+}
+
 function sanitizeFileName(title) {
   const base = title
     .trim()
@@ -11,12 +28,20 @@ function sanitizeFileName(title) {
   return `${base || 'qr-code'}.png`
 }
 
+function resolveFileName(fileName, title, variant) {
+  const base = (fileName ?? sanitizeFileName(title ?? 'qr-code')).replace(/\.png$/i, '')
+  return `${base}${QR_THEMES[variant].fileSuffix}.png`
+}
+
 export async function downloadQrCodePng({
   value,
   title,
   fileName,
   size = 1200,
+  variant = 'color',
 }) {
+  const theme = QR_THEMES[variant] ?? QR_THEMES.color
+
   const host = document.createElement('div')
   host.style.position = 'fixed'
   host.style.left = '-9999px'
@@ -28,8 +53,8 @@ export async function downloadQrCodePng({
     createElement(QRCodeCanvas, {
       value,
       size,
-      bgColor: '#0f0f0f',
-      fgColor: '#d4af37',
+      bgColor: theme.bgColor,
+      fgColor: theme.fgColor,
       level: 'M',
     })
   )
@@ -52,12 +77,12 @@ export async function downloadQrCodePng({
   exportCanvas.height = size + padding * 2 + titleHeight
 
   const ctx = exportCanvas.getContext('2d')
-  ctx.fillStyle = '#0f0f0f'
+  ctx.fillStyle = theme.canvasBg
   ctx.fillRect(0, 0, exportCanvas.width, exportCanvas.height)
   ctx.drawImage(qrCanvas, padding, padding, size, size)
 
   if (title) {
-    ctx.fillStyle = '#d4af37'
+    ctx.fillStyle = theme.titleColor
     ctx.font = '600 52px Cinzel, serif'
     ctx.textAlign = 'center'
     ctx.textBaseline = 'middle'
@@ -78,7 +103,7 @@ export async function downloadQrCodePng({
   const link = document.createElement('a')
   const objectUrl = URL.createObjectURL(blob)
   link.href = objectUrl
-  link.download = fileName ?? sanitizeFileName(title ?? 'qr-code')
+  link.download = resolveFileName(fileName, title, variant)
   link.click()
   URL.revokeObjectURL(objectUrl)
 }

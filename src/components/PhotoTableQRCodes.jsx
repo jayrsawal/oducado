@@ -20,7 +20,7 @@ function qrFileName(tableName) {
 
 function AdminQrCard({ table, url }) {
   const [lightboxOpen, setLightboxOpen] = useState(false)
-  const [downloading, setDownloading] = useState(false)
+  const [downloading, setDownloading] = useState(null)
   const [error, setError] = useState(null)
 
   const lightboxQr = lightboxOpen
@@ -32,19 +32,20 @@ function AdminQrCard({ table, url }) {
       }
     : null
 
-  async function handleDownload() {
-    setDownloading(true)
+  async function handleDownload(variant) {
+    setDownloading(variant)
     setError(null)
     try {
       await downloadQrCodePng({
         value: url,
         title: table.name,
         fileName: qrFileName(table.name),
+        variant,
       })
     } catch (err) {
       setError(err.message ?? 'Download failed')
     } finally {
-      setDownloading(false)
+      setDownloading(null)
     }
   }
 
@@ -71,10 +72,18 @@ function AdminQrCard({ table, url }) {
         <button
           type="button"
           className="poll-button poll-button-secondary poll-button-small"
-          onClick={handleDownload}
-          disabled={downloading}
+          onClick={() => handleDownload('color')}
+          disabled={!!downloading}
         >
-          {downloading ? 'Preparing…' : 'Download PNG'}
+          {downloading === 'color' ? 'Preparing…' : 'Color PNG'}
+        </button>
+        <button
+          type="button"
+          className="poll-button poll-button-secondary poll-button-small"
+          onClick={() => handleDownload('print')}
+          disabled={!!downloading}
+        >
+          {downloading === 'print' ? 'Preparing…' : 'B&W PNG'}
         </button>
         <button
           type="button"

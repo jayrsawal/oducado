@@ -29,7 +29,7 @@ function useQrDisplaySize(open) {
 export default function QrCodeLightbox({ qr, onClose }) {
   const open = Boolean(qr)
   const size = useQrDisplaySize(open)
-  const [downloading, setDownloading] = useState(false)
+  const [downloading, setDownloading] = useState(null)
   const [error, setError] = useState(null)
 
   useBodyScrollLock(open)
@@ -37,7 +37,7 @@ export default function QrCodeLightbox({ qr, onClose }) {
   useEffect(() => {
     if (!open) {
       setError(null)
-      setDownloading(false)
+      setDownloading(null)
       return undefined
     }
 
@@ -51,19 +51,20 @@ export default function QrCodeLightbox({ qr, onClose }) {
 
   if (!open) return null
 
-  async function handleDownload() {
-    setDownloading(true)
+  async function handleDownload(variant) {
+    setDownloading(variant)
     setError(null)
     try {
       await downloadQrCodePng({
         value: qr.value,
         title: qr.title,
         fileName: qr.fileName,
+        variant,
       })
     } catch (err) {
       setError(err.message ?? 'Download failed')
     } finally {
-      setDownloading(false)
+      setDownloading(null)
     }
   }
 
@@ -112,16 +113,24 @@ export default function QrCodeLightbox({ qr, onClose }) {
           <button
             type="button"
             className="poll-button poll-button-primary"
-            onClick={handleDownload}
-            disabled={downloading}
+            onClick={() => handleDownload('color')}
+            disabled={!!downloading}
           >
-            {downloading ? 'Preparing…' : 'Download PNG'}
+            {downloading === 'color' ? 'Preparing…' : 'Color PNG'}
+          </button>
+          <button
+            type="button"
+            className="poll-button poll-button-secondary"
+            onClick={() => handleDownload('print')}
+            disabled={!!downloading}
+          >
+            {downloading === 'print' ? 'Preparing…' : 'B&W PNG'}
           </button>
           <button
             type="button"
             className="poll-button poll-button-secondary"
             onClick={onClose}
-            disabled={downloading}
+            disabled={!!downloading}
           >
             Close
           </button>

@@ -99,6 +99,7 @@ export default function PhotoLightbox({ photo, onClose, onRotate }) {
           <PhotoWatermark
             displayName={photo.display_name}
             tableName={photo.table_name}
+            createdAt={photo.created_at}
             size="large"
           />
         </div>
