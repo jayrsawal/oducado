@@ -28,6 +28,42 @@ function useFullscreenQrSize(fullscreen) {
   return size
 }
 
+export { useFullscreenQrSize }
+
+export function PhotoWallPollCtaSlide({ poll, fullscreen = false }) {
+  const qrSize = useFullscreenQrSize(fullscreen)
+  const pollOpen = poll?.status === 'open'
+  const pollClosed = poll?.status === 'closed'
+  const ctaTo = pollOpen ? '/polls' : pollClosed ? '/results' : '/polls'
+  const ctaLabel = pollOpen ? 'Vote now' : pollClosed ? 'View results' : 'Open voting'
+
+  let statusHint = 'Scan to join the family poll.'
+  if (pollOpen) statusHint = 'Voting is open — scan to cast your ballot.'
+  else if (pollClosed && !poll.results_revealed) statusHint = 'Voting has closed. Scan to see the guest list.'
+  else if (pollClosed && poll.results_revealed) statusHint = 'Winners revealed — scan to view results.'
+
+  return (
+    <div
+      className={`photo-wall-cta-slide photo-wall-cta-slide-poll${
+        fullscreen ? ' photo-wall-cta-slide-fullscreen' : ''
+      }`}
+    >
+      <p className="photo-wall-cta-eyebrow">Oducado Family Reunion 2026</p>
+      <h2 className="photo-wall-cta-title">{poll?.title ?? 'Family poll'}</h2>
+      <p className="photo-wall-cta-desc">{statusHint}</p>
+      <PageQRCode path="/polls" linkTo="/polls" label="Scan to open voting" size={qrSize} />
+      <Link to={ctaTo} className="poll-button poll-button-primary poll-button-small">
+        {ctaLabel}
+      </Link>
+      {pollOpen && (
+        <Link to="/results" className="photo-wall-cta-link">
+          Peek at live results →
+        </Link>
+      )}
+    </div>
+  )
+}
+
 export function PhotoWallUploadCtaSlide({ uploadsOpen = true, fullscreen = false }) {
   const qrSize = useFullscreenQrSize(fullscreen)
 

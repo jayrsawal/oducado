@@ -4,11 +4,13 @@ import useBodyScrollLock from '../hooks/useBodyScrollLock'
 import { isMyPhoto } from '../lib/photoOwnership'
 import { AlbumMediaThumb } from './AlbumMedia'
 import LazyPhoto from './LazyPhoto'
-import PhotoLightbox, { PhotoWallUploadCtaSlide } from './PhotoWallExtras'
+import { useActivePoll } from '../hooks/useActivePoll'
+import { buildCarouselSlides } from '../lib/carouselSlides'
+import PhotoLightbox, { PhotoWallPollCtaSlide, PhotoWallUploadCtaSlide } from './PhotoWallExtras'
 import PhotoWatermark from './PhotoWatermark'
+import PhotoCarouselQrWatermark from './PhotoCarouselQrWatermark'
 
 const FADE_MS = 1000
-const CTA_SLIDE_ID = '__upload-cta__'
 
 function getFullscreenElement() {
   return document.fullscreenElement ?? document.webkitFullscreenElement ?? null
@@ -30,16 +32,10 @@ async function exitNodeFullscreen() {
   if (exit) await exit()
 }
 
-function buildSlides(photos) {
-  const ordered = [...photos]
-    .filter((photo) => photo.media_type !== 'video')
-    .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
-  return [{ id: CTA_SLIDE_ID, type: 'cta' }, ...ordered]
-}
-
 export default function PhotoWallCarousel({
   photos,
   intervalSeconds = 7,
+  adEveryPhotos = 7,
   uploadsOpen = true,
 }) {
   const containerRef = useRef(null)
@@ -47,15 +43,20 @@ export default function PhotoWallCarousel({
   const [isNativeFullscreen, setIsNativeFullscreen] = useState(false)
   const [isExpanded, setIsExpanded] = useState(false)
   const isFullscreen = isNativeFullscreen || isExpanded
+  const { poll } = useActivePoll({ includeClosed: true })
 
   useBodyScrollLock(isExpanded)
 
-  const slides = useMemo(() => buildSlides(photos), [photos])
-  const intervalMs = Math.max(5, Math.min(10, intervalSeconds)) * 1000
+  const slides = useMemo(
+    () => buildCarouselSlides(photos, poll, adEveryPhotos),
+    [adEveryPhotos, photos, poll]
+  )
+  const slidesKey = useMemo(() => slides.map((slide) => slide.id).join('|'), [slides])
+  const intervalMs = Math.max(1, Math.min(10, intervalSeconds)) * 1000
 
   useEffect(() => {
     setIndex(0)
-  }, [photos.length])
+  }, [slidesKey])
 
   useEffect(() => {
     if (slides.length <= 1) return undefined
@@ -139,11 +140,15 @@ export default function PhotoWallCarousel({
             <figure
               key={slide.id}
               className={`photo-wall-carousel-slide${slideIndex === index ? ' is-active' : ''}${
-                slide.type === 'cta' ? ' photo-wall-carousel-slide-cta' : ''
+                slide.type === 'cta' || slide.type === 'poll-cta'
+                  ? ' photo-wall-carousel-slide-cta'
+                  : ''
               }`}
               aria-hidden={slideIndex !== index}
             >
-              {slide.type === 'cta' ? (
+              {slide.type === 'poll-cta' ? (
+                <PhotoWallPollCtaSlide poll={poll} fullscreen={isFullscreen} />
+              ) : slide.type === 'cta' ? (
                 <PhotoWallUploadCtaSlide uploadsOpen={uploadsOpen} fullscreen={isFullscreen} />
               ) : (
                 <div className="photo-wall-carousel-image-wrap">
@@ -161,6 +166,7 @@ export default function PhotoWallCarousel({
                     tableName={slide.table_name}
                     createdAt={slide.created_at}
                   />
+                  <PhotoCarouselQrWatermark fullscreen={isFullscreen} />
                 </div>
               )}
             </figure>

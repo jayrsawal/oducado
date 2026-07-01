@@ -18,6 +18,7 @@ export default function PhotoWallPage() {
   const { photos, loading: photosLoading, error: photosError, reload } = useAlbumPhotos(album?.id)
   const [mode, setMode] = useState('feed')
   const [slideSeconds, setSlideSeconds] = useState(7)
+  const [adEveryPhotos, setAdEveryPhotos] = useState(7)
   const [deleting, setDeleting] = useState(false)
   const [deleteError, setDeleteError] = useState(null)
   const [assignEditPhoto, setAssignEditPhoto] = useState(null)
@@ -182,17 +183,30 @@ export default function PhotoWallPage() {
       {mode === 'carousel' && (
         <div className="photo-wall-carousel-settings">
           <label className="photo-wall-interval-label">
-            <span className="photo-wall-interval-text">Seconds per photo</span>
+            <span className="photo-wall-interval-text">Seconds per slide</span>
             <input
               type="range"
               className="photo-wall-interval-slider"
-              min={5}
+              min={1}
               max={10}
               step={1}
               value={slideSeconds}
               onChange={(event) => setSlideSeconds(Number(event.target.value))}
             />
             <span className="photo-wall-interval-value">{slideSeconds}s</span>
+          </label>
+          <label className="photo-wall-interval-label">
+            <span className="photo-wall-interval-text">QR ad every</span>
+            <input
+              type="range"
+              className="photo-wall-interval-slider"
+              min={4}
+              max={12}
+              step={1}
+              value={adEveryPhotos}
+              onChange={(event) => setAdEveryPhotos(Number(event.target.value))}
+            />
+            <span className="photo-wall-interval-value">{adEveryPhotos}</span>
           </label>
         </div>
       )}
@@ -201,6 +215,7 @@ export default function PhotoWallPage() {
         <PhotoWallCarousel
           photos={photos}
           intervalSeconds={slideSeconds}
+          adEveryPhotos={adEveryPhotos}
           uploadsOpen={album.status === 'open'}
         />
       ) : mode === 'gallery' ? (
