@@ -48,6 +48,7 @@ Migrations live in `supabase/migrations/` and must be run in order:
 | `019_album_photo_poll_options.sql` | Tag quick shares to poll options; latest photo becomes option image |
 | `020_update_album_photo_assignment.sql` | Let guests change table/poll story assignment after upload |
 | `021_album_video_uploads.sql` | Gallery video uploads (MP4/MOV/WebM) with poster thumbnails |
+| `022_remove_album_video_size_limit.sql` | Removes the per-bucket upload size cap for album photos and videos |
 
 **Option A — Supabase CLI (recommended)**
 
@@ -239,11 +240,13 @@ The **photo album** is its own feature at **`/admin/photos`** — not tied to a 
 2. **Open photo uploads** on the Details tab when you are ready
 3. **QR codes** tab — print one code for the reunion (points to **`/photos/wall`**)
 4. Guests scan → open the feed → enter their name → share photos or short videos from the gallery (camera is still photos only), and optionally tag a table or poll option
-5. Everyone browses **`/photos/wall`** (feed, gallery, or carousel) from the landing page, guest list, or QR code
+5. Everyone browses **`/photos/wall`** (feed, gallery, or carousel) from the landing page, guest list, or QR code — tap any photo to open it full screen and download it, or use **Download all** to export the full album as a ZIP
 
 When assigning a photo after orient, guests can pick a **poll story** and search for an option. The most recent photo assigned to each option becomes that option's image on the ballot.
 
-Run migrations **`011`** through **`021`** (see [Database setup](#database-setup)). If you already ran `010`, `011` replaces the poll-tied tables.
+Run migrations **`011`** through **`022`** (see [Database setup](#database-setup)). If you already ran `010`, `011` replaces the poll-tied tables.
+
+**Large videos:** Migration `022` removes the 50 MB bucket cap from migration `021`. You must also raise the **global file size limit** in [Supabase → Storage → Settings](https://supabase.com/dashboard/project/_/storage/settings). On the Free plan the global cap is 50 MB and cannot be increased — upgrade to Pro for larger uploads.
 
 ### Install and run
 

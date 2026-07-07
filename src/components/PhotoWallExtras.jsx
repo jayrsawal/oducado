@@ -5,6 +5,7 @@ import useBodyScrollLock from '../hooks/useBodyScrollLock'
 import PageQRCode from './PageQRCode'
 import PhotoWatermark from './PhotoWatermark'
 import AlbumMedia, { isVideoMedia } from './AlbumMedia'
+import { downloadAlbumMedia } from '../lib/albumMediaDownload'
 
 function useFullscreenQrSize(fullscreen) {
   const [size, setSize] = useState(168)
@@ -107,6 +108,7 @@ export default function PhotoLightbox({
   canDelete = false,
   deleting = false,
 }) {
+  const [downloading, setDownloading] = useState(false)
   useBodyScrollLock(Boolean(photo))
   const touchStartX = useRef(null)
 
@@ -174,6 +176,19 @@ export default function PhotoLightbox({
 
   if (!photo) return null
 
+  async function handleDownload() {
+    if (downloading) return
+
+    setDownloading(true)
+    try {
+      await downloadAlbumMedia(photo)
+    } catch (err) {
+      window.alert(err.message ?? 'Could not download file')
+    } finally {
+      setDownloading(false)
+    }
+  }
+
   return createPortal(
     <div className="photo-lightbox" role="dialog" aria-modal="true" aria-label="Photo preview">
       <button
@@ -228,9 +243,23 @@ export default function PhotoLightbox({
             createdAt={photo.created_at}
             size="large"
           />
-          {(onRotate || onEditAssignment || (canDelete && onDelete)) && (
-            <div className="photo-lightbox-actions">
-              {onEditAssignment && canEditAssignment && (
+          <div className="photo-lightbox-actions">
+            <button
+              type="button"
+              className="photo-lightbox-action-btn"
+              onClick={handleDownload}
+              disabled={deleting || downloading}
+              aria-label={downloading ? 'Downloading' : 'Download'}
+              title={downloading ? 'Downloading…' : 'Download'}
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true" className="photo-lightbox-action-icon">
+                <path
+                  fill="currentColor"
+                  d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"
+                />
+              </svg>
+            </button>
+            {onEditAssignment && canEditAssignment && (
                 <button
                   type="button"
                   className="photo-lightbox-action-btn"
@@ -282,7 +311,6 @@ export default function PhotoLightbox({
                 </button>
               )}
             </div>
-          )}
         </div>
         {canNavigate && (
           <figcaption className="photo-lightbox-counter">

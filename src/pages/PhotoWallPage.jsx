@@ -10,6 +10,7 @@ import { usePhotoStoryAssignOptions } from '../hooks/usePhotoStoryAssignOptions'
 import { getDeviceId } from '../lib/deviceId'
 import { deleteGuestPhoto, updatePhotoAssignment } from '../lib/guestPhoto'
 import { canEditPhotoAssignment } from '../lib/photoOwnership'
+import { downloadAllAlbumMedia } from '../lib/albumMediaDownload'
 
 export default function PhotoWallPage() {
   const { album, loading: albumLoading, error: albumError } = useActivePhotoAlbum({
@@ -24,6 +25,9 @@ export default function PhotoWallPage() {
   const [assignEditPhoto, setAssignEditPhoto] = useState(null)
   const [assignSaving, setAssignSaving] = useState(false)
   const [assignError, setAssignError] = useState(null)
+  const [exporting, setExporting] = useState(false)
+  const [exportError, setExportError] = useState(null)
+  const [exportProgress, setExportProgress] = useState(null)
   const refreshExtraRef = useRef(null)
   const deviceId = getDeviceId()
   const { displayName } = useFeedDisplayName()
@@ -77,7 +81,6 @@ export default function PhotoWallPage() {
   const handleSaveAssignment = useCallback(
     async (assignment) => {
       if (!assignEditPhoto) return
-
       setAssignSaving(true)
       setAssignError(null)
       try {
@@ -99,6 +102,25 @@ export default function PhotoWallPage() {
     },
     [assignEditPhoto, deviceId, reload, runRefreshExtra]
   )
+
+  const handleExportAll = useCallback(async () => {
+    if (!photos.length || exporting) return
+
+    setExporting(true)
+    setExportError(null)
+    setExportProgress(null)
+    try {
+      await downloadAllAlbumMedia(photos, {
+        albumTitle: album?.title ?? 'album',
+        onProgress: (current, total) => setExportProgress({ current, total }),
+      })
+    } catch (err) {
+      setExportError(err.message ?? 'Could not export photos')
+    } finally {
+      setExporting(false)
+      setExportProgress(null)
+    }
+  }, [album?.title, exporting, photos])
 
   if (albumLoading || photosLoading) {
     return <p className="poll-loading">Loading photo wall…</p>
@@ -146,6 +168,23 @@ export default function PhotoWallPage() {
         rosterTableIds={rosterTableIds}
       />
 
+    {photos.length > 0 && (
+        <div className="photo-wall-export-bar">
+          <button
+            type="button"
+            className="poll-button poll-button-secondary poll-button-small"
+            onClick={handleExportAll}
+            disabled={exporting}
+          >
+            {exporting
+              ? exportProgress
+                ? `Downloading ${exportProgress.current} of ${exportProgress.total}…`
+                : 'Preparing download…'
+              : `Download all (${photos.length})`}
+          </button>
+        </div>
+      )}
+
       <div className="photo-wall-mode-toggle" role="tablist" aria-label="Photo wall view">
         <button
           type="button"
@@ -175,6 +214,10 @@ export default function PhotoWallPage() {
           Carousel
         </button>
       </div>
+
+      {exportError && (
+        <p className="poll-message poll-message-error photo-wall-export-error">{exportError}</p>
+      )}
 
       {deleteError && (
         <p className="poll-message poll-message-error photo-wall-delete-error">{deleteError}</p>

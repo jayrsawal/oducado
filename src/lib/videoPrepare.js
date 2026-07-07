@@ -1,4 +1,3 @@
-export const MAX_VIDEO_BYTES = 50 * 1024 * 1024
 export const MAX_VIDEO_DURATION_SEC = 60
 
 const VIDEO_TYPES = new Set(['video/mp4', 'video/quicktime', 'video/webm'])
@@ -48,10 +47,6 @@ function readVideoMetadata(file) {
 export async function validateVideoFile(file) {
   if (!isVideoFile(file)) {
     throw new Error('Unsupported video format. Use MP4, MOV, or WebM.')
-  }
-
-  if (file.size > MAX_VIDEO_BYTES) {
-    throw new Error('Videos must be 50 MB or smaller.')
   }
 
   const { duration } = await readVideoMetadata(file)

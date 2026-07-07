@@ -1,4 +1,5 @@
 import { extensionForVideoMime } from './videoPrepare'
+import { formatStorageError } from './storageErrors'
 import { supabase } from './supabase'
 
 const BUCKET = 'poll-guest-photos'
@@ -21,7 +22,7 @@ async function uploadStorageObject(path, blob, contentType) {
     cacheControl: '3600',
     upsert: false,
   })
-  if (error) throw error
+  if (error) throw new Error(formatStorageError(error))
 }
 
 function publicUrlForPath(path) {

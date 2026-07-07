@@ -3215,7 +3215,18 @@
   display: flex;
   justify-content: center;
   gap: 8px;
+  margin-bottom: 16px;
+}
+
+.photo-wall-export-bar {
+  display: flex;
+  justify-content: center;
   margin-bottom: 28px;
+}
+
+.photo-wall-export-error {
+  margin: -12px 0 20px;
+  text-align: center;
 }
 
 .photo-wall-mode-btn {

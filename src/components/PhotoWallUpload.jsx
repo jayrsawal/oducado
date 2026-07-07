@@ -125,7 +125,7 @@ export default function PhotoWallUpload({
             onClick={shareActions?.openBulkGallery}
             disabled={!shareActions?.canUpload || shareActions?.uploading}
           >
-            Upload multiple photos
+            Upload from your gallery
           </button>
           {shareActions?.uploading && shareActions?.uploadProgress && (
             <p className="poll-hint photo-wall-bulk-upload-progress">
